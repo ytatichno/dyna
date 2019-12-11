@@ -14,7 +14,7 @@
 #include "debug.h"
 #include "dyna-config.h"
 
-#define CONTEXT_FUNCTION_PROPAGATE_DESCRIPTIONS 0
+#define CONTEXT_FUNCTION_PROPAGATE_DESCRIPTIONS 1
 
 #undef min
 #undef max
