@@ -256,12 +256,14 @@ namespace dyna {
     {
       (*m_description_map)[addr] = descr;
 #if DEBUG_PRINT_REGVARS
+      const char* var_name = descr ? descr->Name().c_str() : "''";
+      const char* str_local = descr->is_local() ? " local" : "";
       if (auto l = dynamic_cast<const LoopString*>(m_descr))
-        dprint("loop %d: register variable %s\n", l->StartLine(), descr->Name().c_str());
+        dprint("loop %d: register%s variable '%s'\n", l->StartLine(), str_local, var_name);
       else if (auto f = dynamic_cast<const FunctionString*>(m_descr))
-        dprint("function %s: register variable %s\n", f->FunctionName().c_str(), descr->Name().c_str());
+        dprint("function %s: register%s variable '%s'\n", f->FunctionName().c_str(), str_local, var_name);
       else
-        dprint("unknown context: register variable %s\n", descr->Name().c_str());
+        dprint("unknown context: register%s variable '%s'\n", str_local, var_name);
 #endif
     }
 
@@ -269,12 +271,14 @@ namespace dyna {
     {
       (*m_description_map)[addr_range] = descr;
 #if DEBUG_PRINT_REGVARS
+      const char* var_name = descr ? descr->Name().c_str() : "''";
+      const char* str_local = descr->is_local() ? " local" : "";
       if (auto l = dynamic_cast<const LoopString*>(m_descr))
-        dprint("loop %d: register array %s\n", l->StartLine(), descr->Name().c_str());
+        dprint("loop %d: register%s array '%s'\n", l->StartLine(), str_local, var_name);
       else if (auto f = dynamic_cast<const FunctionString*>(m_descr))
-        dprint("function %s: register array %s\n", f->FunctionName().c_str(), descr->Name().c_str());
+        dprint("function %s: register%s array '%s'\n", f->FunctionName().c_str(), str_local, var_name);
       else
-        dprint("unknown context: register array %s\n", descr->Name().c_str());
+        dprint("unknown context: register%s array '%s'\n", str_local, var_name);
 #endif
     }
 
