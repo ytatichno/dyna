@@ -34,7 +34,7 @@ JSON_OBJECT_END(Distance)
 
 /// Definition of a JSON-object which represents a loop and its properties.
 JSON_OBJECT_BEGIN(Loop)
-JSON_OBJECT_PAIR_9(Loop
+JSON_OBJECT_PAIR_10(Loop
   , File, std::string
   , Line, LineTy
   , Column, ColumnTy
@@ -42,6 +42,7 @@ JSON_OBJECT_PAIR_9(Loop
   , Flow, std::map<BCL_JOIN(IdTy, Distance)>
   , Anti, std::map<BCL_JOIN(IdTy, Distance)>
   , UseAfterLoop, std::set<IdTy>
+  , ReadOccurred, std::set<IdTy>
   , WriteOccurred, std::set<IdTy>
   , Output, std::set<IdTy>
 )
@@ -157,6 +158,8 @@ template<> struct Traits<dyna::RawInfo::LoopList::value_type> {
         L[Loop::Private].insert(v.first->second);
       if (v.second->use_after_loop())
         L[Loop::UseAfterLoop].insert(v.first->second);
+      if (v.second->is_read_occurred())
+        L[Loop::ReadOccurred].insert(v.first->second);
       if (v.second->is_write_occurred())
         L[Loop::WriteOccurred].insert(v.first->second);
       if (v.second->has_output_dep())

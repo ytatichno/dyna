@@ -392,6 +392,7 @@ namespace dyna {
     AnalysisResult(const AddrInfo& ai)
       : m_is_private(ai.is_private)
       , m_use_after_loop(false)
+      , m_read_occurred(false)
       , m_write_occurred(false)
       , m_output_dep(false)
       , m_min_fwd_dep(ai.min_fwd_dep)
@@ -403,6 +404,7 @@ namespace dyna {
     AnalysisResult()
       : m_is_private(true)
       , m_use_after_loop(false)
+      , m_read_occurred(false)
       , m_write_occurred(false)
       , m_output_dep(false)
       , m_min_fwd_dep(std::numeric_limits<int>::max())
@@ -420,6 +422,11 @@ namespace dyna {
     bool use_after_loop() const
     {
       return m_use_after_loop;
+    }
+
+    bool is_read_occurred() const
+    {
+      return m_read_occurred;
     }
 
     bool is_write_occurred() const
@@ -465,6 +472,7 @@ namespace dyna {
     void update(const AddrInfo& ai)
     {
       m_is_private = m_is_private && ai.is_private;
+      m_read_occurred = m_read_occurred || AddrInfo::is_set(ai.first_read_iter);
       m_write_occurred = m_write_occurred || AddrInfo::is_set(ai.first_write_iter);
       m_output_dep = m_output_dep || AddrInfo::is_set(ai.first_write_iter) && ai.first_write_iter != ai.last_write_iter;
       m_min_fwd_dep = AddrInfo::min(m_min_fwd_dep, ai.min_fwd_dep);
@@ -481,6 +489,7 @@ namespace dyna {
   private:
     bool m_is_private;
     bool m_use_after_loop;
+    bool m_read_occurred;
     bool m_write_occurred;
     bool m_output_dep; //write after write
     int m_min_fwd_dep;
@@ -580,6 +589,7 @@ namespace dyna {
         //## construct variable list for each trait ##
         std::vector<const VariableString*> priv;
         std::vector<const VariableString*> use_after_loop;
+        std::vector<const VariableString*> read_occurred;
         std::vector<const VariableString*> write_occurred;
         std::vector<const VariableString*> output_dep;
         std::vector<decltype(m_context_map)::mapped_type::const_pointer> fwd;
@@ -589,6 +599,8 @@ namespace dyna {
             priv.push_back(v.first);
           if (v.second.use_after_loop())
             use_after_loop.push_back(v.first);
+          if (v.second.is_read_occurred())
+            read_occurred.push_back(v.first);
           if (v.second.is_write_occurred())
             write_occurred.push_back(v.first);
           if (v.second.has_output_dep())
@@ -630,6 +642,16 @@ namespace dyna {
           local_format_print_prefix;
           out << "use_after_loop(" << (*it)->Name();
           for (++it; it != use_after_loop.end(); ++it)
+            out << ", " << (*it)->Name();
+          out << ")";
+          comma = true;
+        }
+        if (!read_occurred.empty()) {
+          auto it = read_occurred.begin();
+          local_format_print_delimiter;
+          local_format_print_prefix;
+          out << "read_occurred(" << (*it)->Name();
+          for (++it; it != read_occurred.end(); ++it)
             out << ", " << (*it)->Name();
           out << ")";
           comma = true;
