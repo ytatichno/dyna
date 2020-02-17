@@ -617,6 +617,7 @@ namespace dyna {
         };
         std::sort(priv.begin(), priv.end(), [](const VariableString* a, const VariableString* b) { return a->Name() < b->Name(); });
         std::sort(use_after_loop.begin(), use_after_loop.end(), [](const VariableString* a, const VariableString* b) { return a->Name() < b->Name(); });
+        std::sort(read_occurred.begin(), read_occurred.end(), [](const VariableString* a, const VariableString* b) { return a->Name() < b->Name(); });
         std::sort(write_occurred.begin(), write_occurred.end(), [](const VariableString* a, const VariableString* b) { return a->Name() < b->Name(); });
         std::sort(output_dep.begin(), output_dep.end(), [](const VariableString* a, const VariableString* b) { return a->Name() < b->Name(); });
         std::sort(fwd.begin(), fwd.end(), sort_var_dep_less_op);
