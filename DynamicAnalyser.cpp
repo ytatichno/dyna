@@ -3,6 +3,7 @@
 #include <cassert>
 #include <stdexcept>
 #include <sstream>
+#include <csignal>
 
 #include "ContextStringParser.h"
 #include "DynamicAnalyser.h"
@@ -10,11 +11,24 @@
 
 using namespace std;
 
+static void sig_handler(int sig)
+{
+  std::exit(13);
+}
 
 DynamicAnalyser::DynamicAnalyser()
 {
   dprint("### Construct dynamic analyzer ###\n");
 
+  //## set signal handlers to finalize on interruption ##
+  std::signal(SIGINT, sig_handler);
+  std::signal(SIGTERM, sig_handler);
+  std::signal(SIGABRT, sig_handler);
+  std::signal(SIGSEGV, sig_handler);
+  std::signal(SIGILL, sig_handler);
+  std::signal(SIGFPE, sig_handler);
+
+  //## process dyna settings ##
   try {
     m_process_environment();
   }
@@ -23,6 +37,7 @@ DynamicAnalyser::DynamicAnalyser()
     exit(-1);
   }
 
+  //## create context for main function ##
   m_contextStringsStore  = new ContextStringsStore();
   m_contexts.start_function(0);
 }
