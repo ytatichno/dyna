@@ -79,6 +79,11 @@ class BasicString{
   public:
     // Возвращает описание контекстной строки в строковом виде
     virtual std::string ToString() const;
+    // Make a one-line string to use as part of another string.
+    virtual std::string to_short_str() const
+    {
+      return m_fileName;
+    }
 
 };
 /**************************************************/
@@ -134,6 +139,10 @@ class VariableString: public BasicString{
   public:
     // Возвращает описание переменной в строковом виде
     std::string ToString() const;
+    std::string to_short_str() const
+    {
+      return m_name;
+    }
 
 };
 /***************************************************************/
@@ -158,6 +167,10 @@ class VariableAccessString: public BasicString{
    public:
      // Возвращает описание доступа к переменной в строковом виде
      std::string    ToString();
+     std::string to_short_str() const
+     {
+       return FileName() + "(" + std::to_string(m_line) + ")";
+     }
 };
 /*********************************************************************/
 
@@ -192,8 +205,10 @@ class LoopString: public BasicString{
   public:
     // Возвращает описание цикла в строковом виде
     std::string    ToString() const;
-
-
+    std::string to_short_str() const
+    {
+      return FileName() + "(" + std::to_string(m_startLine) + "): loop";
+    }
 };
 /******************************************************/
 
@@ -225,6 +240,10 @@ class FunctionCallString: public BasicString{
   public:
     // Возвращает описание вызова функции в строковом виде
     std::string    ToString();
+    std::string to_short_str() const
+    {
+      return FileName() + "(" + std::to_string(m_line) + "): " + m_name + "()";
+    }
 
 };
 /************************************************************/
@@ -261,6 +280,10 @@ class FunctionString: public BasicString{
   public:
     // Возвращает описание функции в строковом виде
     std::string    ToString() const;
+    std::string to_short_str() const
+    {
+      return m_name + "()";
+    }
 
 };
 /*******************************************/
@@ -293,6 +316,10 @@ public:
 public:
   // Возвращает описание общего блока в строковом виде
   std::string  ToString();
+  std::string to_short_str() const
+  {
+    return m_name;
+  }
 
 };
 /*******************************************/
