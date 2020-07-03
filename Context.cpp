@@ -1,4 +1,12 @@
 #include "Context.h"
+#include <cstdio>
+
+std::string dyna::AddrRange::to_str() const
+{
+  char buf[256];
+  sprintf(buf, "[%x; %x]", low_border, high_border);
+  return buf;
+}
 
 #ifdef USE_JSON_BCL
 #include "JsonObjects.h"

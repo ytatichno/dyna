@@ -47,6 +47,7 @@ namespace dyna {
     {
       return low_border != r.low_border || high_border != r.high_border;
     }
+    std::string to_str() const;
   };
 
   enum AccessType {
