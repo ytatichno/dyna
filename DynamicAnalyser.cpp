@@ -103,6 +103,12 @@ void DynamicAnalyser::RegAccess(dyna::AccessType accType, CSHandle access_cs, vo
   assert(descr != 0);
   m_anstorage.on_reg_access((long)pAddr, accType);
   m_contexts.get_current()->register_access((long)pAddr, accType, descr);
+#if DEBUG_PRINT_REGACCESS
+  const char* act = accType == dyna::AT_READ ? "read" : accType == dyna::AT_WRITE ? "write" : "read/write";
+  const char* var_name = m_contexts.get_current()->dbg_get_var_name((long)pAddr);
+  std::string loc = access_cs != 0 ? ((BasicString*)access_cs)->to_short_str() : "...";
+  dprint("%s: %s '%s' [%x]\n", loc.c_str(), act, var_name, (long)pAddr);
+#endif //DEBUG_PRINT_REFACCESS
 }
 
 void DynamicAnalyser::RegLoop(CSHandle cs, long *init, long *last, long *step)
