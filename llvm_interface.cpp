@@ -12,7 +12,7 @@ extern "C"
 {
 void sapforRegVar(void* DIVar, void* Addr)
 {
-#if !DEBUG_EMPTY_FUNCTIONS && !DEBUG_IGNORE_VARS
+#if !DEBUG_EMPTY_FUNCTIONS && !DEBUG_IGNORE_VARS && !DEBUG_IGNORE_REG_VARS
   dprint_ifunc_begin(RegVar);
   da.RegVariable(DIVar, Addr);
   dprint_ifunc_end(RegVar);
@@ -21,7 +21,7 @@ void sapforRegVar(void* DIVar, void* Addr)
 
 void sapforRegArr(void* DIVar, size_t ArrSize, void* Addr)
 {
-#if !DEBUG_EMPTY_FUNCTIONS && !DEBUG_IGNORE_ARRS
+#if !DEBUG_EMPTY_FUNCTIONS && !DEBUG_IGNORE_ARRS && !DEBUG_IGNORE_REG_ARRS
   dprint_ifunc_begin(RegArr);
   da.RegArray(DIVar, Addr, ArrSize);
   dprint_ifunc_end(RegArr);
