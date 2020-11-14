@@ -319,6 +319,11 @@ namespace dyna {
 #endif
     }
 
+    void dbg_print_description_map() const
+    {
+      dprint_description_map(*m_description_map);
+    }
+
   private: //methods
     static inline void add_missing_description(DescriptionMap& dm, AddrRange addr_range, const VariableString* descr)
     {
