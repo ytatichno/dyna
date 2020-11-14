@@ -94,6 +94,7 @@ void BasicString::SetFileName(const std::string& fileName){m_fileName = fileName
 void BasicString::SetFileName(char* fileName){m_fileName = fileName;}
 std::string BasicString::ToString() const {return "";}
 
+
 SrcRefString::SrcRefString(StringType sType, SplitString* sItems)
   : BasicString(sType)
 {
@@ -122,18 +123,11 @@ std::string SrcRefString::ToString() const
 }
 
 VariableString::VariableString(StringType sType, SplitString*sItems)
-  : BasicString(sType)
+  : SrcRefString(sType, sItems)
 {
   std::string tmpStr;
 
-  SetFileName(sItems->GetValue("file"));
-
-  tmpStr = sItems->GetValue("line1");
-  m_line = tmpStr == "" ? -1 : Auxiliary::FromString<long>(tmpStr);
-  tmpStr = sItems->GetValue("col1");
-  m_col = tmpStr == "" ? -1 : Auxiliary::FromString<long>(tmpStr);
   m_name = sItems->GetValue("name1");
-
   tmpStr = sItems->GetValue("vtype");
   if (tmpStr != "")
   {
@@ -156,8 +150,6 @@ VariableString::VariableString(StringType sType, SplitString*sItems)
   m_local = tmpStr != "" && Auxiliary::FromString<int>(tmpStr) != 0;
 }
 
-long      VariableString::Line() const{return m_line;}
-long      VariableString::Col() const{return m_col;}
 const std::string&  VariableString::Name() const {return m_name;}
 VariableType  VariableString::Type() const {return m_type;}
 int        VariableString::Rank() const {return m_rank;}
@@ -168,12 +160,7 @@ std::string  VariableString::ToString() const
   std::string str;
 
   str  = "variable_info: ";
-  str += "file name = ";
-  str += FileName();
-  str += "; line = ";
-  str += Auxiliary::ToString(m_line);
-  str += "; col = ";
-  str += Auxiliary::ToString(m_col);
+  str += SrcRefString::ToString();
   str += "; name = ";
   str += m_name;
   str += "; type number = ";

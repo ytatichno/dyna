@@ -127,12 +127,8 @@ private:
 /****************************************************************/
 /***** Класс, хранящий контекстную информацию о переменной *****/
 /**************************************************************/
-class VariableString: public BasicString{
-
-    long      m_line;      // Номер строки файла, в которой объявлена переменная
-
-    long      m_col;       // Номер столбца файла, в котором объявлена переменная
-
+class VariableString: public SrcRefString
+{
     std::string    m_name;      // Имя переменной
 
     VariableType  m_type;      // Тип переменной
@@ -145,23 +141,16 @@ class VariableString: public BasicString{
     // Конструктор
     VariableString(StringType sType, SplitString* sItems);
     VariableString(const std::string& name, const std::string& file_name, long line, long col, VariableType type, int rank, bool local=false)
-      : BasicString(ST_VAR)
+      : SrcRefString(ST_VAR, file_name, line, col)
       , m_name(name)
-      , m_col(col)
-      , m_line(line)
       , m_type(type)
       , m_rank(rank)
       , m_local(local)
     {
-      SetFileName(file_name);
     }
 
   public:
 
-    // Возвращает номер строки файла, в которой объявлена переменная
-    long Line() const;
-    // Возвращает номер столбца файла, в котором объявлена переменная
-    long Col() const;
     // Возвращает имя переменной
     const std::string& Name() const;
     // Возвращает тип переменной
@@ -177,7 +166,6 @@ class VariableString: public BasicString{
     {
       return m_name;
     }
-
 };
 /***************************************************************/
 
