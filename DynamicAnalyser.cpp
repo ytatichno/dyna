@@ -105,9 +105,9 @@ void DynamicAnalyser::RegAccess(dyna::AccessType accType, CSHandle access_cs, vo
   m_contexts.get_current()->register_access((long)pAddr, accType, descr);
 #if DEBUG_PRINT_REGACCESS
   const char* act = accType == dyna::AT_READ ? "read" : accType == dyna::AT_WRITE ? "write" : "read/write";
-  const char* var_name = m_contexts.get_current()->dbg_get_var_name((long)pAddr);
   std::string loc = access_cs != 0 ? ((BasicString*)access_cs)->to_short_str() : "...";
-  dprint("%s: %s '%s' [%x]\n", loc.c_str(), act, var_name, (long)pAddr);
+  const VariableString* vd = m_contexts.get_current()->get_var_descr((long)pAddr);
+  dprint("%s: %s " DPRINT_VAR_FMT " [%x]\n", loc.c_str(), act, DPRINT_VAR_ARG(vd), (long)pAddr);
 #endif //DEBUG_PRINT_REFACCESS
 }
 

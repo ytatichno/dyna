@@ -269,10 +269,11 @@ namespace dyna {
     {
       (*m_description_map)[addr] = descr;
 #if DEBUG_PRINT_REGVARS
-      const char* var_name = descr ? descr->Name().c_str() : "''";
       const char* str_local = descr->is_local() ? " local" : "";
       std::string scont = m_descr ? m_descr->to_short_str() : "unknown context";
-      dprint("%s: register%s variable '%s' [0x%08x]\n", scont.c_str(), str_local, var_name, addr);
+      dprint("%s: register%s variable " DPRINT_VAR_FMT " [0x%08x]\n"
+        , scont.c_str(), str_local, DPRINT_VAR_ARG(descr), addr
+      );
 #endif
     }
 
@@ -280,11 +281,12 @@ namespace dyna {
     {
       (*m_description_map)[addr_range] = descr;
 #if DEBUG_PRINT_REGARRS
-      const char* var_name = descr ? descr->Name().c_str() : "''";
       const char* str_local = descr->is_local() ? " local" : "";
       std::string scont = m_descr ? m_descr->to_short_str() : "unknown context";
-      dprint("%s: register%s array '%s' [0x%08x-0x%08x]\n", scont.c_str(), str_local, var_name
-        , addr_range.low_border, addr_range.high_border);
+      dprint("%s: register%s array " DPRINT_VAR_FMT " [0x%08x-0x%08x]\n"
+        , scont.c_str(), str_local, DPRINT_VAR_ARG(descr)
+        , addr_range.low_border, addr_range.high_border
+      );
 #endif
     }
 
@@ -362,8 +364,7 @@ namespace dyna {
       dprint("Description map [%x]:\n", &dm);
       for (const auto& p: dm) {
         auto descr = p.second;
-        const char* var_name = descr ? descr->Name().c_str() : "''";
-        dprint("  %s => [%x] '%s'\n", p.first.to_str().c_str(), descr, var_name);
+        dprint("  %s => [%x] " DPRINT_VAR_FMT "\n", p.first.to_str().c_str(), descr, DPRINT_VAR_ARG(descr));
       }
     }
   };
