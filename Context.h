@@ -279,7 +279,7 @@ namespace dyna {
     void register_array(AddrRange addr_range, const VariableString* descr)
     {
       (*m_description_map)[addr_range] = descr;
-#if DEBUG_PRINT_REGVARS
+#if DEBUG_PRINT_REGARRS
       const char* var_name = descr ? descr->Name().c_str() : "''";
       const char* str_local = descr->is_local() ? " local" : "";
       std::string scont = m_descr ? m_descr->to_short_str() : "unknown context";
