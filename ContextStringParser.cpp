@@ -94,6 +94,33 @@ void BasicString::SetFileName(const std::string& fileName){m_fileName = fileName
 void BasicString::SetFileName(char* fileName){m_fileName = fileName;}
 std::string BasicString::ToString() const {return "";}
 
+SrcRefString::SrcRefString(StringType sType, SplitString* sItems)
+  : BasicString(sType)
+{
+  std::string s;
+
+  SetFileName(sItems->GetValue("file"));
+
+  s = sItems->GetValue("line1");
+  m_line = s == "" ? -1 : Auxiliary::FromString<long>(s);
+  s = sItems->GetValue("col1");
+  m_col = s == "" ? -1 : Auxiliary::FromString<long>(s);
+}
+
+std::string SrcRefString::ToString() const
+{
+  std::string str;
+
+  str += "file name = ";
+  str += FileName();
+  str += "; line = ";
+  str += Auxiliary::ToString(m_line);
+  str += "; col = ";
+  str += Auxiliary::ToString(m_col);
+
+  return str;
+}
+
 VariableString::VariableString(StringType sType, SplitString*sItems)
   : BasicString(sType)
 {

@@ -88,6 +88,40 @@ class BasicString{
 };
 /**************************************************/
 
+/*********************************************************************/
+/***** Класс, хранящий контекстную информацию о позиции в файле *****/
+/*******************************************************************/
+class SrcRefString: public BasicString
+{
+public:
+  // Конструктор
+  SrcRefString(StringType st, SplitString* sItems);
+  SrcRefString(StringType st, const std::string& file_name, long line, long col)
+    : BasicString(st)
+    , m_line(line)
+    , m_col(col)
+  {
+    SetFileName(file_name);
+  }
+
+  // Возвращает номер строки в файле
+  inline long line() const { return m_line; }
+  // Возвращает номер столбца в строке
+  inline long col() const { return m_col; }
+
+  // Возвращает в строковом виде описание позиции в файле
+  std::string ToString() const;
+  // Make an one-line string to use as part of another string.
+  std::string to_short_str() const
+  {
+    return FileName() + "(" + std::to_string(m_line) + ")";
+  }
+
+private:
+  long m_line; // Номер строки в файле
+  long m_col;  // Номер столбца в строке
+};
+/*********************************************************************/
 
 
 /****************************************************************/
