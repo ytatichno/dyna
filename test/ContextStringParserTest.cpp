@@ -141,7 +141,7 @@ TEST(VariableStringTest, Getters)
   VariableString* v = dynamic_cast<VariableString*>((BasicString*)cs);
   ASSERT_NE(v, nullptr);
   EXPECT_EQ(v->FileName(), "t.cpp");
-  EXPECT_EQ(v->Line(), 11);
+  EXPECT_EQ(v->line(), 11);
   EXPECT_EQ(v->Name(), "i");
   EXPECT_TRUE(v->is_local());
   css.AddString(cs, "type=var_name*vtype=1*file=t.cpp*line1=11*name1=j*local=0**");
