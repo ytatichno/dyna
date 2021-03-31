@@ -20,6 +20,7 @@ set (Dyna_srcs
   llvm_interface.cpp
   memory_usage.cpp
   omp_dbg.cpp
+  string_utils.cpp
 )
 set (Dyna_headers
   Auxiliary.h
@@ -32,6 +33,7 @@ set (Dyna_headers
   m_time.h
   memory_usage.h
   omp_dbg.h
+  string_utils.h
   ${CMAKE_CURRENT_BINARY_DIR}/dyna-config.h
 )
 if (USE_JSON_BCL)

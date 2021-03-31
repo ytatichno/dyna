@@ -24,6 +24,7 @@ set (SRC
   AddrInfoTest.cpp
   ContextStringParserTest.cpp
   ContextTest.cpp
+  string_utils_test.cpp
 )
 
 if (MSVC)
