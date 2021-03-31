@@ -7,7 +7,9 @@
 
 #include "ContextStringParser.h"
 #include "DynamicAnalyser.h"
+#include "get_pid.h"
 #include "memory_usage.h"
+#include "string_utils.h"
 
 using namespace std;
 
@@ -198,11 +200,16 @@ void DynamicAnalyser::m_process_environment()
   }
 
   if (!output || iequals(output, "file")) {
-    m_output_file.reset(new fstream(fname, std::ios::out));
+    map<string, string> vars = {
+      {"PID", to_string(get_pid())},
+    };
+    string filename = string_substitute_vars(fname, vars);
+    m_output_file.reset(new fstream(filename, std::ios::out));
     if (!m_output_file || !m_output_file->is_open()) {
-      throw runtime_error(string("cannot open file '") + fname + "'");
+      throw runtime_error(string("cannot open file '") + filename + "'");
     }
     m_out = m_output_file.get();
+    dprint("Dyna puts result into file '%s'.\n", filename.c_str());
   }
   else if (iequals(output, "stdout")) {
     m_out = &std::cout;
