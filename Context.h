@@ -60,6 +60,7 @@ namespace dyna {
   {
     bool is_private;
     bool is_local;
+    bool is_init; // It means read access follows write access even the write was made on an earlier iteration.
     long first_write_iter;
     long first_read_iter;
     long last_write_iter;
@@ -73,6 +74,7 @@ namespace dyna {
     AddrInfo(AccessType atype, long iter, bool is_local=false)
       : is_private(atype == AT_WRITE)
       , is_local(is_local)
+      , is_init(atype == AT_WRITE)
       , first_write_iter(std::numeric_limits<long>::max())
       , first_read_iter(std::numeric_limits<long>::max())
       , last_write_iter(std::numeric_limits<long>::max())
@@ -89,8 +91,9 @@ namespace dyna {
     }
 
     AddrInfo(const AddrInfo &ai, long iter)
-      : is_private(ai.is_private)
+      : is_private(ai.is_init) // The non-private variable may be private in the upper context.
       , is_local(ai.is_local)
+      , is_init(ai.is_init)
       , first_write_iter(std::numeric_limits<long>::max())
       , first_read_iter(std::numeric_limits<long>::max())
       , last_write_iter(std::numeric_limits<long>::max())
@@ -111,8 +114,10 @@ namespace dyna {
       if (atype == AT_WRITE) {
         if (last_write_iter == iter)
           return;
-        if (!is_set(first_write_iter))
+        if (!is_set(first_write_iter)) {
           first_write_iter = iter;
+          is_init = !is_set(first_read_iter);
+        }
         last_write_iter = iter;
         if (is_set(first_read_iter) && first_read_iter != iter) {
           int dmax = iabs((int)(iter - first_read_iter));
@@ -147,7 +152,7 @@ namespace dyna {
     {
       long lri = last_read_iter;
       if (is_set(ai.first_read_iter)) {
-        is_private = is_private && (ai.is_private || last_write_iter == iter);
+        is_private = is_private && (ai.is_init || last_write_iter == iter);
         if (!is_set(first_read_iter))
           first_read_iter = iter;
         last_read_iter = iter;
@@ -159,8 +164,10 @@ namespace dyna {
         }
       }
       if (is_set(ai.first_write_iter)) {
-        if (!is_set(first_write_iter))
+        if (!is_set(first_write_iter)) {
           first_write_iter = iter;
+          is_init = !is_set(lri) && ai.is_init;
+        }
         last_write_iter = iter;
         if (is_set(first_read_iter) && first_read_iter != iter) {
           int dmax = iabs((int)(iter - first_read_iter));
