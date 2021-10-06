@@ -213,6 +213,15 @@ class LoopString: public BasicString{
 
     // Конструктор
     LoopString(StringType sType, SplitString* sItems);
+    LoopString(const std::string& fname, long line_b, long col_b, long line_e = 0, long col_e = 0)
+      : BasicString(ST_LOOP)
+      , m_startLine(line_b)
+      , m_startCol(col_b)
+      , m_endLine(line_e)
+      , m_endCol(col_e)
+    {
+      SetFileName(fname);
+    }
 
   public:
     // Возвращает номер строки начала цикла

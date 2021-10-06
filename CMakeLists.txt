@@ -64,3 +64,4 @@ if (Dyna_install_path)
 endif ()
 
 add_subdirectory (test)
+add_subdirectory(dyna-joiner)

@@ -513,12 +513,25 @@ namespace dyna {
       m_max_rev_dep = AddrInfo::max(m_max_rev_dep, ai.max_rev_dep);
     }
 
+    void update(const AnalysisResult& ar)
+    {
+      m_is_private = m_is_private && ar.m_is_private;
+      m_use_after_loop = m_use_after_loop || ar.m_use_after_loop;
+      m_read_occurred = m_read_occurred || ar.m_read_occurred;
+      m_write_occurred = m_write_occurred || ar.m_write_occurred;
+      m_output_dep = m_output_dep || ar.m_output_dep;
+      m_min_fwd_dep = AddrInfo::min(m_min_fwd_dep, ar.m_min_fwd_dep);
+      m_max_fwd_dep = AddrInfo::max(m_max_fwd_dep, ar.m_max_fwd_dep);
+      m_min_rev_dep = AddrInfo::min(m_min_rev_dep, ar.m_min_rev_dep);
+      m_max_rev_dep = AddrInfo::max(m_max_rev_dep, ar.m_max_rev_dep);
+    }
+
     void set_use_after_loop(bool value)
     {
       m_use_after_loop = value;
     }
 
-  private:
+  protected:
     bool m_is_private;
     bool m_use_after_loop;
     bool m_read_occurred;
@@ -581,6 +594,7 @@ namespace dyna {
     }
 
     std::string toJSON() const;
+    void add_from_json(const std::string& json_str, ContextStringsStore& cs_store);
 
     template <class OStream>
     void debug_print(OStream& out) const
