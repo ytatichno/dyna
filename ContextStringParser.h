@@ -356,17 +356,28 @@ class ContextStringsStore
   StoreType  m_store;    // Хранилище контекстной информации, ключ - идентификатор
                             // контекстной строки, значение - контекстная
                             // информация
-
+public:
+  typedef StoreType::const_iterator const_iterator;
 public:
   ContextStringsStore();    // Конструктор
   ~ContextStringsStore();    // Деструктор
 
 public:
 
+  const_iterator begin() const { return m_store.begin(); }
+  const_iterator end()   const { return m_store.end(); }
+
   // Функция добавляет контекстную информацию в хранилище с ключом - m_currCntxtID, побочным действием
   // записывает значение m_currCntxtID по адресу keyAddress и увеличивает значение m_currCntxtID на
   // единицу
   BasicString* AddString(void*& keyAddress, const char* str);
+  template<typename T>
+  T* AddString(const T& cs)
+  {
+    T* obj = new T(cs);
+    m_store.insert(std::make_pair(obj, obj));
+    return obj;
+  }
 
   // Функция возвращает контекстную информацию из хранилица по ключу или NULL, если ключ в
   // хранилище отсутствует
