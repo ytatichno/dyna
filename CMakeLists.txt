@@ -4,6 +4,8 @@ set (Dyna_DESCRIPTION "Dynamic Analyzer Runtime")
 set (Dyna_HOMEPAGE_URL "https://bitbucket.org/dvm-system/dyna")
 set (DYNA_FOLDER ""
   CACHE STRING "Specify IDE folder for DYNA Runtime.")
+set (DYNA_TOOLS_FOLDER ""
+  CACHE STRING "Specify IDE folder for DYNA Tools.")
 
 option(USE_JSON_BCL "Use JSON unparser from Base Construction Library (BCL)" OFF)
 if (USE_JSON_BCL)
@@ -59,8 +61,8 @@ if (MSVC)
     source_group(bcl FILES ${BCL_CORE_HEADERS})
   endif ()
 endif ()
-if (Dyna_install_path)
-  install (TARGETS da DESTINATION ${Dyna_install_path})
+if (Dyna_install)
+  install (TARGETS da)
 endif ()
 
 add_subdirectory (test)
