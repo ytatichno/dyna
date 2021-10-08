@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.0)
 project (Dyna VERSION 0.4 LANGUAGES CXX)
 set (Dyna_DESCRIPTION "Dynamic Analyzer Runtime")
-set (Dyna_HOMEPAGE_URL "https://bitbucket.org/dvm-system/dyna")
+set (Dyna_HOMEPAGE_URL "https://github.com/dvm-system/dyna")
 set (DYNA_FOLDER ""
   CACHE STRING "Specify IDE folder for DYNA Runtime.")
 set (DYNA_TOOLS_FOLDER ""
