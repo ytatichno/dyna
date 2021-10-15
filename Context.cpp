@@ -139,7 +139,7 @@ void dyna::AnalysisStorage::add_from_json(const std::string& json_str, ContextSt
 std::string dyna::AnalysisStorage::toJSON() const {
   throw std::runtime_error("dynamic analyser compiled without JSON support. Please recompile it with flag USE_JSON_BCL.");
 }
-void dyna::AnalysisStorage::add_from_json(const std::string& json_str)
+void dyna::AnalysisStorage::add_from_json(const std::string& json_str, ContextStringsStore& cs_store)
 {
   throw std::runtime_error("dynamic analyser compiled without JSON support. Please recompile it with flag USE_JSON_BCL.");
 }
