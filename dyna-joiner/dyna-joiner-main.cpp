@@ -52,8 +52,8 @@ int main(int argc, char** argv)
         ss << file.rdbuf();
         astorage.add_from_json(ss.str(), cs_store);
       }
-      catch (const exception&) {
-        throw;
+      catch (const exception& e) {
+        throw runtime_error(fname + ": " + e.what());
       }
       catch (...) {
         throw runtime_error(string("cannot read file '") + fname + "'");
