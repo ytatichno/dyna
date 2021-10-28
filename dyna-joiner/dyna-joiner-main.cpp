@@ -1,7 +1,10 @@
+#include <cerrno>
 #include <cstring>
+#include <exception>
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <system_error>
 #include "../Context.h"
 using namespace std;
 using namespace dyna;
@@ -37,33 +40,34 @@ int main(int argc, char** argv)
     }
   }
 
-  AnalysisStorage astorage;
-  ContextStringsStore cs_store;
-  for (const auto& fname : fnames) {
-    try {
-      ifstream file(fname);
-      if (!file.is_open())
-        throw string("cannot open file '")+fname+"'";
-      stringstream ss;
-      ss << file.rdbuf();
-      astorage.add_from_json(ss.str(), cs_store);
+  try {
+    AnalysisStorage astorage;
+    ContextStringsStore cs_store;
+    for (const auto& fname : fnames) {
+      try {
+        ifstream file(fname);
+        if (!file.is_open())
+          throw system_error(errno, generic_category(), string("cannot open file '") + fname + "'");
+        stringstream ss;
+        ss << file.rdbuf();
+        astorage.add_from_json(ss.str(), cs_store);
+      }
+      catch (const exception&) {
+        throw;
+      }
+      catch (...) {
+        throw runtime_error(string("cannot read file '") + fname + "'");
+      }
     }
-    catch (const string& err) {
-      cerr << "error: " << err << endl;
-      return 1;
-    }
-    catch (const runtime_error& err) {
-      cerr << "error: " << fname << ": " << err.what() << endl;
-      return 1;
-    }
-    catch (...) {
-      cerr << "cannot read file '" << fname << "'" << endl;
-      return 1;
-    }
+
+    if (dbg_flag)
+      astorage.debug_print(cout);
+    else
+      cout << astorage.toJSON();
   }
-  if (dbg_flag)
-    astorage.debug_print(cout);
-  else
-    cout << astorage.toJSON();
+  catch (const exception& e) {
+    cerr << "error: " << e.what() << endl;
+    return 1;
+  }
   return 0;
 }
