@@ -11,6 +11,8 @@ option(USE_JSON_BCL "Use JSON unparser from Base Construction Library (BCL)" OFF
 if (USE_JSON_BCL)
   find_package(BCL 3.0 REQUIRED CONFIG)
   message(STATUS "BCL version: ${BCL_VERSION}")
+  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 
 set (Dyna_srcs
