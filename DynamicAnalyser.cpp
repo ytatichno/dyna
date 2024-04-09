@@ -152,6 +152,16 @@ void DynamicAnalyser::UnregFunction(CSHandle staticContextHandle)
   m_contexts.end_function();
 }
 
+void DynamicAnalyser::RegPragmaActual(CSHandle staticContextHandle, char *Identifier){
+  // dprint("!!! initialize dynamic analyzer ");
+  dprint("%s\n", Identifier);
+}
+void DynamicAnalyser::RegPragmaGetActual(CSHandle staticContextHandle, char *Identifier){
+  // dprint("!!! initialize dynamic analyzer ");
+  dprint("%s\n", Identifier);
+
+}
+
 static inline bool iequals(const string& a, const string& b)
 {
   size_t sz = a.size();

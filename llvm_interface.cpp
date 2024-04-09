@@ -176,6 +176,19 @@ void sapforDeclTypes(size_t Num, size_t* Ids, size_t* Sizes)
   dprint_ifunc_end(DeclTypes);
 #endif
 }
+
+void sapforRegActual(char* Identifier){
+    dprint_ifunc_begin(RegActual);
+    printf("\n\n!!!sapforRegActual!!! \n\n\n");
+    da.RegPragmaActual(NULL, Identifier);
+    dprint_ifunc_end(RegActual);
+}
+void sapforRegGetActual(char* Identifier){
+    dprint_ifunc_begin(RegActual);
+    printf("\n\n!!!sapforRegGetActual!!! \n\n\n");
+    da.RegPragmaGetActual(NULL, Identifier);
+    dprint_ifunc_end(RegActual);
+}
 } // end of extern "C"
 
 #endif //BUILD_WITH_LLVM_INTERFACE

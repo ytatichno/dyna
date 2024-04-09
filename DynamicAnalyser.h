@@ -48,6 +48,10 @@ public: //methods
   void RegActualParameter(CSHandle staticContextHandle, int pos, CSHandle var_name);
   // Регистрирует формальный параметр функции
   void RegFormalParameter(CSHandle staticContextHandle, int pos, void* pAddr, long* arrSize = NULL);
+  // Регистрирует операцию pragma dvm actual
+  void RegPragmaActual(CSHandle staticContextHandle, char *Identifier);
+  // Регистрирует операцию pragma dvm actual
+  void RegPragmaGetActual(CSHandle staticContextHandle, char *Identifier);
 
   double& ifunc_calls_timer(const std::string& name)
   {
