@@ -152,13 +152,12 @@ void DynamicAnalyser::UnregFunction(CSHandle staticContextHandle)
   m_contexts.end_function();
 }
 
-void DynamicAnalyser::RegPragmaActual(CSHandle staticContextHandle, char *Identifier){
-  // dprint("!!! initialize dynamic analyzer ");
-  dprint("%s\n", Identifier);
+void DynamicAnalyser::RegPragmaActual(CSHandle staticContextHandle, const char *Identifiers){
+  dprint("%s\n", Identifiers);
+
 }
-void DynamicAnalyser::RegPragmaGetActual(CSHandle staticContextHandle, char *Identifier){
-  // dprint("!!! initialize dynamic analyzer ");
-  dprint("%s\n", Identifier);
+void DynamicAnalyser::RegPragmaGetActual(CSHandle staticContextHandle, const char *Identifiers){
+  dprint("%s\n", Identifiers);
 
 }
 
@@ -229,4 +228,3 @@ void DynamicAnalyser::m_print_calls_info()
     dprint("function %s: num_calls = %zu total time = %f\n", name, n, t);
   }
 }
-

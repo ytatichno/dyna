@@ -49,9 +49,9 @@ public: //methods
   // Регистрирует формальный параметр функции
   void RegFormalParameter(CSHandle staticContextHandle, int pos, void* pAddr, long* arrSize = NULL);
   // Регистрирует операцию pragma dvm actual
-  void RegPragmaActual(CSHandle staticContextHandle, char *Identifier);
+  void RegPragmaActual(CSHandle staticContextHandle, const char *Identifiers);
   // Регистрирует операцию pragma dvm actual
-  void RegPragmaGetActual(CSHandle staticContextHandle, char *Identifier);
+  void RegPragmaGetActual(CSHandle staticContextHandle, const char *Identifiers);
 
   double& ifunc_calls_timer(const std::string& name)
   {
@@ -88,6 +88,6 @@ private: // methods
     return it->second;
   }
   void m_print_calls_info();
+
 };
 /*********************************************************************************************/
-
