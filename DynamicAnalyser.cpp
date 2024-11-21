@@ -284,4 +284,29 @@ inline void DynamicAnalyser::m_actual_write_host(addr_t addr) {
     break;
   }
 }
+inline void DynamicAnalyser::m_actual_write_gpu(addr_t addr) {
+
+  auto it = m_actualityStorage.find(addr);
+  if (it == m_actualityStorage.end()) {
+    // dprint("unreg[%ld]\n", addr);
+    return;
+  }
+  dyna::ActualStatus status = it->second.status;
+  BasicString *contextString = it->second.contextString;
+  dyna::ActualInfo info{dyna::ActualStatus::ACTUAL_REGION, contextString};
+  // switch can be collapsed for performance
+  switch (status) {
+  case dyna::ActualStatus::INACTUAL:
+    m_actualityStorage[addr] = info;
+    break;
+  case dyna::ActualStatus::ACTUAL_HOST:
+    m_actualityStorage[addr] = info;
+    break;
+  case dyna::ActualStatus::ACTUAL_REGION: // some local changes, ok
+    break;
+  case dyna::ActualStatus::ACTUAL_BOTH:
+    m_actualityStorage[addr] = info;
+    break;
+  }
+}
 

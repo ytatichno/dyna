@@ -102,6 +102,7 @@ private: // methods
   inline void m_actual_state_trans(addr_t addr, ActualString* contextString);
   /// change state of address actuality in actuality map on write from host
   inline void m_actual_write_host(addr_t addr);
+  inline void m_actual_write_gpu(addr_t addr);
 };
 /*********************************************************************************************/
   dyna::RegionActualMap m_actualityStorage; // hide it behind conditional compilation
