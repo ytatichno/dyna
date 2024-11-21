@@ -22,9 +22,22 @@ class ContextStringsStore;
 extern bool inRegion;
 
 
-class DynamicAnalyser
-{
-public: //methods
+
+struct PragmaActualCall {
+  addr_t baseAddr;
+  uint32_t elementSize;
+  std::vector<uint32_t> args;
+  PragmaActualCall(addr_t baseAddr, uint32_t elementSize, std::vector<uint32_t> &&args)
+   : baseAddr(baseAddr), elementSize(elementSize), args(args) { printf("\npragmaactual\n\n"); }
+  ~PragmaActualCall(){
+    printf("\n~pragmaactual\n\n");
+  }
+  private:
+  PragmaActualCall(){ printf("\npragmaactual\n\n");}
+};
+
+class DynamicAnalyser {
+public: // methods
   DynamicAnalyser();
   ~DynamicAnalyser();
 
