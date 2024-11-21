@@ -105,6 +105,7 @@ private: // methods
   inline void m_actual_write_gpu(addr_t addr);
   /// initializes actuality map for certain address
   inline void m_actual_init_host(addr_t addr, BasicString *contextString);
+  inline void m_redundant_copy_to_gpu(addr_t addr);
 };
 /*********************************************************************************************/
   dyna::RegionActualMap m_actualityStorage; // hide it behind conditional compilation

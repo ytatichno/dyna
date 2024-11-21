@@ -325,3 +325,18 @@ inline void DynamicAnalyser::m_actual_init_host(addr_t addr,
   dprint("type is %s\n", NS_VariableType::ToString(vtype).c_str());
 }
 
+
+inline void DynamicAnalyser::m_redundant_copy_to_gpu(addr_t addr) {n
+  dprint("red?[%ld]", addr);
+  auto it = m_actualityStorage.find(addr);
+  dyna::ActualStatus status = it->second.status;
+  printf("[%d]\n", (int)status);
+  // if (status == dyna::ActualStatus::ACTUAL_REGION ||
+  //     status == dyna::ActualStatus::INACTUAL) {
+  // } // must be unreached error
+  if (status == dyna::ActualStatus::ACTUAL_REGION ||
+      status == dyna::ActualStatus::ACTUAL_BOTH) {
+    dprint("\ncase 1 addr detected\n\n");
+    fprintf(stdout, "%ld\n", addr);
+  }
+}
