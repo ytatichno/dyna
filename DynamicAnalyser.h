@@ -72,9 +72,9 @@ public: // methods
   // Регистрирует формальный параметр функции
   void RegFormalParameter(CSHandle staticContextHandle, int pos, void* pAddr, long* arrSize = NULL);
   // Регистрирует операцию pragma dvm actual
-  void RegPragmaActual(CSHandle staticContextHandle, const char *Identifiers);
   // Регистрирует операцию pragma dvm actual
   void RegPragmaGetActual(CSHandle staticContextHandle, const char *Identifiers);
+  void RegPragmaActual(addr_t baseAddr, uint32_t elementSize, std::vector<uint32_t> args);
 
   double& ifunc_calls_timer(const std::string& name)
   {

@@ -161,9 +161,54 @@ void DynamicAnalyser::UnregFunction(CSHandle staticContextHandle)
   m_contexts.end_function();
 }
 
-void DynamicAnalyser::RegPragmaActual(CSHandle staticContextHandle, const char *Identifiers){
-  dprint("%s\n", Identifiers);
+void DynamicAnalyser::RegPragmaActual(addr_t baseAddr, uint32_t elementSize,
+                                      std::vector<uint32_t> args) {
 
+  if (inRegion) {
+    dprint("actual can't be placed inside a region\n");
+  }
+
+  if (args.size() % 2 != 0)
+    dprint("ERROR\n");
+
+
+  m_actualPragmaCallsStore.push(
+      PragmaActualCall(baseAddr, elementSize, std::move(args)));
+
+  // switch (arg_c) {  // candidates for parallelisation
+  // case 0: // whole array
+
+  //   break;
+  // case 2: {
+  //   addr_t x_beg = baseAddr + va_arg(args, index_t),
+  //          x_end = baseAddr + va_arg(args, index_t);
+  //   for (; x_end != x_beg; ++x_beg) {
+  //     m_actual_state_trans(x_beg);
+  //   }
+  //   break;
+  // }
+  // // case 4: {
+  // //   addr_t x_beg = baseAddr + va_arg(args, index_t),
+  // //          x_end = baseAddr + va_arg(args, index_t);
+
+  // //   for (; x_end != x_beg; ++x_beg) {
+  // //     addr_t y_beg = x_beg + va_arg(args, index_t),
+  // //            y_end = x_beg + va_arg(args, index_t);
+  // //     for (;y_end != y_beg; ++y_beg){
+  // //       m_actual_state_trans(y_beg);
+  // //     }
+  // //   }
+
+  // //   break;
+
+  // // }
+  // // case 6
+  // /////////
+  // // break
+  // default:  // more than 3 ranges
+  //   // std::vector<uint32_t> rangesBegins();
+  //   // std::vector<uint32_t> rangesEnds();
+  // }
 }
 void DynamicAnalyser::RegPragmaGetActual(CSHandle staticContextHandle, const char *Identifiers){
   dprint("%s\n", Identifiers);
@@ -326,7 +371,7 @@ inline void DynamicAnalyser::m_actual_init_host(addr_t addr,
 }
 
 
-inline void DynamicAnalyser::m_redundant_copy_to_gpu(addr_t addr) {n
+inline void DynamicAnalyser::m_redundant_copy_to_gpu(addr_t addr) {
   dprint("red?[%ld]", addr);
   auto it = m_actualityStorage.find(addr);
   dyna::ActualStatus status = it->second.status;
