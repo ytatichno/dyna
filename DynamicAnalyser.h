@@ -75,6 +75,7 @@ public: // methods
   void RegPragmaActual(addr_t baseAddr, uint32_t elementSize, std::vector<uint32_t> args);
   // Регистрирует операцию pragma dvm get_actual undone
   void RegPragmaGetActual(CSHandle staticContextHandle, const char *Identifiers);
+  void RegRegionEntrance();
 
   double& ifunc_calls_timer(const std::string& name)
   {

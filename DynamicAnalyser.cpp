@@ -219,8 +219,37 @@ void DynamicAnalyser::RegPragmaGetActual(CSHandle staticContextHandle,
   }
 }
 
-static inline bool iequals(const string& a, const string& b)
-{
+
+void DynamicAnalyser::RegRegionEntrance() {
+  printf("CallQueue: %ld\n", m_actualPragmaCallsStore.size());
+  // printf("args   %u  %u\n", m_actualPragmaCallsStore.front().args[0],
+  //       m_actualPragmaCallsStore.front().args[1]);
+  // fflush(stdout);
+  while (!m_actualPragmaCallsStore.empty()) {
+    PragmaActualCall &call = m_actualPragmaCallsStore.front();
+    switch (call.args.size()) { // candidates for parallelisation
+    case 0:                     // whole array
+
+      break;
+    case 2: {
+      addr_t x_beg = call.baseAddr + call.args[0] * call.elementSize,
+             x_end = call.baseAddr + call.args[1] * call.elementSize;
+      for (; x_beg <= x_end; x_beg+=call.elementSize) {
+
+        m_redundant_copy_to_gpu(x_beg);
+        // todo update val by ref not rewrite with copy
+        auto it = m_actualityStorage.find(x_beg);
+        it->second.status = dyna::ActualStatus::ACTUAL_BOTH;
+        m_actualityStorage[x_beg] = it->second;
+      }
+      break;
+    }
+    }
+    m_actualPragmaCallsStore.pop();
+  }
+}
+
+static inline bool iequals(const string &a, const string &b) {
   size_t sz = a.size();
   if (sz != b.size())
     return false;
