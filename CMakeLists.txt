@@ -11,6 +11,8 @@ if (USE_JSON_BCL)
   message(STATUS "BCL version: ${BCL_VERSION}")
 endif()
 
+set(CMAKE_CXX_STANDARD 17)
+
 set (Dyna_srcs
   Auxiliary.cpp
   Context.cpp
@@ -20,8 +22,11 @@ set (Dyna_srcs
   llvm_interface.cpp
   memory_usage.cpp
   omp_dbg.cpp
+  Result/AnalysisStorage.cpp
+  Result/DependencyAnalysisResult.cpp
 )
 set (Dyna_headers
+  ActualityStorage.h
   Auxiliary.h
   Context.h
   ContextStringParser.h
@@ -29,9 +34,16 @@ set (Dyna_headers
   debug.h
   dyna-config.h.in
   DynamicAnalyser.h
-  m_time.h
+  JsonObjects.h
   memory_usage.h
+  m_time.h
   omp_dbg.h
+  RegionActualMap.hpp
+  type_aliases.hpp
+  Result/AnalysisResult.hpp
+  Result/AnalysisStorage.hpp
+  Result/DependencyAnalysisResult.hpp
+  Result/RegionExchangeAnalysisResult.hpp
   ${CMAKE_CURRENT_BINARY_DIR}/dyna-config.h
 )
 if (USE_JSON_BCL)
