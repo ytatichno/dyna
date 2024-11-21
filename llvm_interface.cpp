@@ -1,17 +1,21 @@
+#include "ContextStringParser.h"
 #include "debug.h"
+#include <cstdarg>
+#include <cstddef>
+#include <cstdint>
 
 #if BUILD_WITH_LLVM_INTERFACE
-#include <stdio.h>
-#include <stdlib.h>
 #include "DynamicAnalyser.h"
 #include "m_time.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 DynamicAnalyser da;
 
-extern "C"
-{
-void sapforRegVar(void* DIVar, void* Addr)
-{
+bool inRegion = false;
+
+extern "C" {
+void sapforRegVar(void *DIVar, void *Addr) {
 #if !DEBUG_EMPTY_FUNCTIONS && !DEBUG_IGNORE_VARS
   dprint_ifunc_begin(RegVar);
   da.RegVariable(DIVar, Addr);
@@ -183,11 +187,23 @@ void sapforRegActual(char* Identifiers){
     da.RegPragmaActual(NULL, Identifiers);
     dprint_ifunc_end(RegActual);
 }
+void sapforRegionIn() {
+  printf("region entrance\n");
+  inRegion = true; // should we check if it called twice
+  da.RegRegionEntrance();
+  // da.R
+}
+
+void sapforRegionOut() {
+  printf("region exit\n");
+  inRegion = false; // should we check if it called twice
+}
+
 void sapforRegGetActual(char* Identifiers){
-    dprint_ifunc_begin(RegActual);
-    // printf("\n\n!!!sapforRegGetActual!!! \n\n\n");
-    da.RegPragmaGetActual(NULL, Identifiers);
-    dprint_ifunc_end(RegActual);
+  dprint_ifunc_begin(RegActual);
+  // printf("\n\n!!!sapforRegGetActual!!! \n\n\n");
+  da.RegPragmaGetActual(NULL, Identifiers);
+  dprint_ifunc_end(RegActual);
 }
 } // end of extern "C"
 
