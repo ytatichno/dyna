@@ -30,7 +30,7 @@ set (Dyna_srcs
   Result/DependencyAnalysisResult.cpp
 )
 set (Dyna_headers
-  ActualityStorage.h
+  # ActualityStorage.h
   Auxiliary.h
   Context.h
   ContextStringParser.h
@@ -47,7 +47,7 @@ set (Dyna_headers
   Result/AnalysisResult.hpp
   Result/AnalysisStorage.hpp
   Result/DependencyAnalysisResult.hpp
-  Result/RegionExchangeAnalysisResult.hpp
+  # Result/RegionExchangeAnalysisResult.hpp
   ${CMAKE_CURRENT_BINARY_DIR}/dyna-config.h
 )
 if (USE_JSON_BCL)
