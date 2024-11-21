@@ -1,0 +1,6 @@
+.gitignore
+CMakeFiles
+*.cmake
+*.a
+*.txt
+Makefile
