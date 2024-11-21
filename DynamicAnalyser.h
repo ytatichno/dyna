@@ -87,11 +87,15 @@ public: // methods
 
 private: // types
   typedef std::pair<double, size_t> InterfaceCallsInfo;
+  /// stores queue of actual calls between regions
+  typedef std::queue<PragmaActualCall> ActualPragmaCallsStore;
 
 private: // variables
   ContextStringsStore* m_contextStringsStore;  // хранилище информации из контестных строк.
   dyna::ContextStack m_contexts; // стек контекстов отражающий текущее состояние программы во время выполнения.
   dyna::AnalysisStorage m_anstorage; // глобальное хранилище результатов анализа.
+  dyna::RegionActualMap m_actualityStorage; // hide it behind conditional compilation
+  ActualPragmaCallsStore m_actualPragmaCallsStore;
 
   bool m_print_json;
   std::ostream* m_out;
@@ -121,4 +125,3 @@ private: // methods
   inline void m_redundant_copy_to_gpu(addr_t addr);
 };
 /*********************************************************************************************/
-  dyna::RegionActualMap m_actualityStorage; // hide it behind conditional compilation
