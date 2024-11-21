@@ -181,12 +181,6 @@ void sapforDeclTypes(size_t Num, size_t* Ids, size_t* Sizes)
 #endif
 }
 
-void sapforRegActual(char* Identifiers){
-    dprint_ifunc_begin(RegActual);
-    // printf("\n\n!!!sapforRegActual!!! \n\n\n");
-    da.RegPragmaActual(NULL, Identifiers);
-    dprint_ifunc_end(RegActual);
-}
 void sapforRegionIn() {
   printf("region entrance\n");
   inRegion = true; // should we check if it called twice
@@ -199,6 +193,34 @@ void sapforRegionOut() {
   inRegion = false; // should we check if it called twice
 }
 
+/**
+ * @brief backend for pragma instrumentation implemented in @link ReplacePragmaWithCall
+ * @param baseAddr ptr to array start or ptr to scalar
+ * @param elementSize size of element of array or variable in bytes (sizeof *var)
+ * @param arg_c count of variadic arguments on stack
+ * @param ... boundaries of slice to copy to gpu, single element has bound doubled
+ * @example #pragma dvm actual(arr[1:x][3][0:2]) -> sapforRegActual(&arr, sizeof *arr, 6, 1, x, 3, 3, 0, 2);
+ */
+void sapforRegActual(void *baseAddr, uint32_t elementSize, uint32_t arg_c, ...) {
+  dprint_ifunc_begin(RegActual);
+  dprint("regactual baseaddr: %lld\n", baseAddr);
+  dprint("regactual arg_c %u\n", arg_c);
+
+  va_list args;
+  va_start(args, arg_c);
+
+  // wrap variadic into vector
+  std::vector<uint32_t> arguments(arg_c);
+
+  for (uint32_t i = 0; i < arg_c; ++i) {
+    arguments[i] = va_arg(args, uint32_t);
+  }
+  va_end(args);
+
+  da.RegPragmaActual((addr_t)baseAddr, elementSize, arguments);
+
+  dprint_ifunc_end(RegActual);
+}
 void sapforRegGetActual(char* Identifiers){
   dprint_ifunc_begin(RegActual);
   // printf("\n\n!!!sapforRegGetActual!!! \n\n\n");
