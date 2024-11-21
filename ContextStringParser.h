@@ -83,21 +83,56 @@ class BasicString{
   public:
     // Возвращает описание контекстной строки в строковом виде
     virtual std::string ToString() const;
+    // Make a one-line string to use as part of another string.
+    virtual std::string to_short_str() const
+    {
+      return m_fileName;
+    }
 
 };
 /**************************************************/
 
+/*********************************************************************/
+/***** Класс, хранящий контекстную информацию о позиции в файле *****/
+/*******************************************************************/
+class SrcRefString: public BasicString
+{
+public:
+  // Конструктор
+  SrcRefString(StringType st, SplitString* sItems);
+  SrcRefString(StringType st, const std::string& file_name, long line, long col)
+    : BasicString(st)
+    , m_line(line)
+    , m_col(col)
+  {
+    SetFileName(file_name);
+  }
+
+  // Возвращает номер строки в файле
+  inline long line() const { return m_line; }
+  // Возвращает номер столбца в строке
+  inline long col() const { return m_col; }
+
+  // Возвращает в строковом виде описание позиции в файле
+  std::string ToString() const;
+  // Make an one-line string to use as part of another string.
+  std::string to_short_str() const
+  {
+    return FileName() + "(" + std::to_string(m_line) + ")";
+  }
+
+private:
+  long m_line; // Номер строки в файле
+  long m_col;  // Номер столбца в строке
+};
+/*********************************************************************/
 
 
 /****************************************************************/
 /***** Класс, хранящий контекстную информацию о переменной *****/
 /**************************************************************/
-class VariableString: public BasicString{
-
-    long      m_line;      // Номер строки файла, в которой объявлена переменная
-
-    long      m_col;       // Номер столбца файла, в котором объявлена переменная
-
+class VariableString: public SrcRefString
+{
     std::string    m_name;      // Имя переменной
 
     VariableType  m_type;      // Тип переменной
@@ -110,23 +145,16 @@ class VariableString: public BasicString{
     // Конструктор
     VariableString(StringType sType, SplitString* sItems);
     VariableString(const std::string& name, const std::string& file_name, long line, long col, VariableType type, int rank, bool local=false)
-      : BasicString(ST_VAR)
+      : SrcRefString(ST_VAR, file_name, line, col)
       , m_name(name)
-      , m_col(col)
-      , m_line(line)
       , m_type(type)
       , m_rank(rank)
       , m_local(local)
     {
-      SetFileName(file_name);
     }
 
   public:
 
-    // Возвращает номер строки файла, в которой объявлена переменная
-    long Line() const;
-    // Возвращает номер столбца файла, в котором объявлена переменная
-    long Col() const;
     // Возвращает имя переменной
     const std::string& Name() const;
     // Возвращает тип переменной
@@ -138,7 +166,10 @@ class VariableString: public BasicString{
   public:
     // Возвращает описание переменной в строковом виде
     std::string ToString() const;
-
+    std::string to_short_str() const
+    {
+      return m_name;
+    }
 };
 /***************************************************************/
 
@@ -162,6 +193,10 @@ class VariableAccessString: public BasicString{
    public:
      // Возвращает описание доступа к переменной в строковом виде
      std::string    ToString();
+     std::string to_short_str() const
+     {
+       return FileName() + "(" + std::to_string(m_line) + ")";
+     }
 };
 /*********************************************************************/
 
@@ -182,6 +217,15 @@ class LoopString: public BasicString{
 
     // Конструктор
     LoopString(StringType sType, SplitString* sItems);
+    LoopString(const std::string& fname, long line_b, long col_b, long line_e = 0, long col_e = 0)
+      : BasicString(ST_LOOP)
+      , m_startLine(line_b)
+      , m_startCol(col_b)
+      , m_endLine(line_e)
+      , m_endCol(col_e)
+    {
+      SetFileName(fname);
+    }
 
   public:
     // Возвращает номер строки начала цикла
@@ -196,8 +240,10 @@ class LoopString: public BasicString{
   public:
     // Возвращает описание цикла в строковом виде
     std::string    ToString() const;
-
-
+    std::string to_short_str() const
+    {
+      return FileName() + "(" + std::to_string(m_startLine) + "): loop";
+    }
 };
 /******************************************************/
 
@@ -229,6 +275,10 @@ class FunctionCallString: public BasicString{
   public:
     // Возвращает описание вызова функции в строковом виде
     std::string    ToString();
+    std::string to_short_str() const
+    {
+      return FileName() + "(" + std::to_string(m_line) + "): " + m_name + "()";
+    }
 
 };
 /************************************************************/
@@ -265,6 +315,10 @@ class FunctionString: public BasicString{
   public:
     // Возвращает описание функции в строковом виде
     std::string    ToString() const;
+    std::string to_short_str() const
+    {
+      return m_name + "()";
+    }
 
 };
 /*******************************************/
@@ -297,6 +351,10 @@ public:
 public:
   // Возвращает описание общего блока в строковом виде
   std::string  ToString();
+  std::string to_short_str() const
+  {
+    return m_name;
+  }
 
 };
 /*******************************************/
@@ -337,17 +395,28 @@ class ContextStringsStore
   StoreType  m_store;    // Хранилище контекстной информации, ключ - идентификатор
                             // контекстной строки, значение - контекстная
                             // информация
-
+public:
+  typedef StoreType::const_iterator const_iterator;
 public:
   ContextStringsStore();    // Конструктор
   ~ContextStringsStore();    // Деструктор
 
 public:
 
+  const_iterator begin() const { return m_store.begin(); }
+  const_iterator end()   const { return m_store.end(); }
+
   // Функция добавляет контекстную информацию в хранилище с ключом - m_currCntxtID, побочным действием
   // записывает значение m_currCntxtID по адресу keyAddress и увеличивает значение m_currCntxtID на
   // единицу
   BasicString* AddString(void*& keyAddress, const char* str);
+  template<typename T>
+  T* AddString(const T& cs)
+  {
+    T* obj = new T(cs);
+    m_store.insert(std::make_pair(obj, obj));
+    return obj;
+  }
 
   // Функция возвращает контекстную информацию из хранилица по ключу или NULL, если ключ в
   // хранилище отсутствует

@@ -45,8 +45,8 @@ namespace dyna {
     {
       return low_border != r.low_border || high_border != r.high_border;
     }
+    std::string to_str() const;
   };
-
 
 
 
@@ -71,6 +71,13 @@ namespace dyna {
       , m_is_function(lexical_parent == 0)
       , m_description_map(lexical_parent != 0 ? lexical_parent->m_description_map : new DescriptionMap)
     {
+#if DEBUG_PRINT_CONTEXT_CREATION
+      std::string cnt = m_descr ? m_descr->to_short_str() : "no description";
+      dprint("%s: new context(parent=%x) dm=%x [%x]\n", cnt.c_str(), lexical_parent, m_description_map, this);
+#if DEBUG_PRINT_CONTEXT_CREATION_DESCR_MAP
+      dprint_description_map(*m_description_map);
+#endif //DEBUG_PRINT_CONTEXT_CREATION_DESCR_MAP
+#endif //DEBUG_PRINT_CONTEXT_CREATION
     }
     ~Context()
     {
@@ -96,6 +103,11 @@ namespace dyna {
     {
       auto it = m_description_map->find(addr);
       return it != m_description_map->end() ? it->second : unknown_var();
+    }
+    const char* dbg_get_var_name(long addr) const
+    {
+      auto it = m_description_map->find(addr);
+      return it != m_description_map->end() ? it->second->Name().c_str() : "";
     }
 
     const_iterator begin() const
@@ -128,35 +140,34 @@ namespace dyna {
     {
       (*m_description_map)[addr] = descr;
 #if DEBUG_PRINT_REGVARS
-      const char* var_name = descr ? descr->Name().c_str() : "''";
       const char* str_local = descr->is_local() ? " local" : "";
-      if (auto l = dynamic_cast<const LoopString*>(m_descr))
-        dprint("loop %d: register%s variable '%s'\n", l->StartLine(), str_local, var_name);
-      else if (auto f = dynamic_cast<const FunctionString*>(m_descr))
-        dprint("function %s: register%s variable '%s'\n", f->FunctionName().c_str(), str_local, var_name);
-      else
-        dprint("unknown context: register%s variable '%s'\n", str_local, var_name);
+      std::string scont = m_descr ? m_descr->to_short_str() : "unknown context";
+      dprint("%s: register%s variable " DPRINT_VAR_FMT " [0x%08x]\n"
+        , scont.c_str(), str_local, DPRINT_VAR_ARG(descr), addr
+      );
 #endif
     }
 
     void register_array(AddrRange addr_range, const VariableString* descr)
     {
       (*m_description_map)[addr_range] = descr;
-#if DEBUG_PRINT_REGVARS
-      const char* var_name = descr ? descr->Name().c_str() : "''";
+#if DEBUG_PRINT_REGARRS
       const char* str_local = descr->is_local() ? " local" : "";
-      if (auto l = dynamic_cast<const LoopString*>(m_descr))
-        dprint("loop %d: register%s array '%s'\n", l->StartLine(), str_local, var_name);
-      else if (auto f = dynamic_cast<const FunctionString*>(m_descr))
-        dprint("function %s: register%s array '%s'\n", f->FunctionName().c_str(), str_local, var_name);
-      else
-        dprint("unknown context: register%s array '%s'\n", str_local, var_name);
+      std::string scont = m_descr ? m_descr->to_short_str() : "unknown context";
+      dprint("%s: register%s array " DPRINT_VAR_FMT " [0x%08x-0x%08x]\n"
+        , scont.c_str(), str_local, DPRINT_VAR_ARG(descr)
+        , addr_range.low_border, addr_range.high_border
+      );
 #endif
     }
 
     void set_current_iteration(long iter)
     {
       m_current_iteration = iter;
+#if DEBUG_PRINT_LOOP_ITER
+      if (auto l = dynamic_cast<const LoopString*>(m_descr))
+        dprint("%s: iteration %d\n", l->to_short_str().c_str(), iter);
+#endif //DEBUG_PRINT_LOOP_ITER
     }
 
     void merge_into(Context *upper_context) const
@@ -179,6 +190,11 @@ namespace dyna {
         }
       }
 #endif
+    }
+
+    void dbg_print_description_map() const
+    {
+      dprint_description_map(*m_description_map);
     }
 
   private: //methods
@@ -213,6 +229,14 @@ namespace dyna {
     {
       //TODO: implement
       //TODO: write tests for DescriptionMap
+    }
+    static inline void dprint_description_map(const DescriptionMap& dm)
+    {
+      dprint("Description map [%x]:\n", &dm);
+      for (const auto& p: dm) {
+        auto descr = p.second;
+        dprint("  %s => [%x] " DPRINT_VAR_FMT "\n", p.first.to_str().c_str(), descr, DPRINT_VAR_ARG(descr));
+      }
     }
   };
 

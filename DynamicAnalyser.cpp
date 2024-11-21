@@ -14,7 +14,9 @@
 #include "DynamicAnalyser.h"
 #include "RegionActualMap.hpp"
 #include "debug.h"
+#include "get_pid.h"
 #include "memory_usage.h"
+#include "string_utils.h"
 
 #define mydbg 1
 
@@ -135,6 +137,12 @@ void DynamicAnalyser::RegAccess(dyna::AccessType accType, CSHandle access_cs, vo
     std::cout << pAddr << " " << descr->ToString() << std::endl;
 // std::cout << pAddr << " " << acc-> << std::endl;
 #endif
+#if DEBUG_PRINT_REGACCESS
+  const char* act = accType == dyna::AT_READ ? "read" : accType == dyna::AT_WRITE ? "write" : "read/write";
+  std::string loc = access_cs != 0 ? ((BasicString*)access_cs)->to_short_str() : "...";
+  const VariableString* vd = m_contexts.get_current()->get_var_descr((long)pAddr);
+  dprint("%s: %s " DPRINT_VAR_FMT " [%x]\n", loc.c_str(), act, DPRINT_VAR_ARG(vd), (long)pAddr);
+#endif //DEBUG_PRINT_REFACCESS
 }
 
 void DynamicAnalyser::RegLoop(CSHandle cs, long *init, long *last, long *step)
@@ -316,11 +324,16 @@ void DynamicAnalyser::m_process_environment()
   }
 
   if (!output || iequals(output, "file")) {
-    m_output_file.reset(new fstream(fname, std::ios::out));
+    map<string, string> vars = {
+      {"PID", to_string(get_pid())},
+    };
+    string filename = string_substitute_vars(fname, vars);
+    m_output_file.reset(new fstream(filename, std::ios::out));
     if (!m_output_file || !m_output_file->is_open()) {
-      throw runtime_error(string("cannot open file '") + fname + "'");
+      throw runtime_error(string("cannot open file '") + filename + "'");
     }
     m_out = m_output_file.get();
+    dprint("Dyna puts result into file '%s'.\n", filename.c_str());
   }
   else if (iequals(output, "stdout")) {
     m_out = &std::cout;

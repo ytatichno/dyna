@@ -10,6 +10,8 @@
 #define DEBUG_IGNORE_ARRS 0
 #define DEBUG_IGNORE_COMMON_BLOCKS 0
 
+#define DEBUG_IGNORE_REG_VARS 1
+#define DEBUG_IGNORE_REG_ARRS 1
 #define DEBUG_IGNORE_READ_VARS 0
 #define DEBUG_IGNORE_READ_ARRS 0
 #define DEBUG_IGNORE_WRITE_VARS 0
@@ -21,6 +23,13 @@
 #define DEBUG_PRINT_INTERFACE_BORDERS 0
 #define DEBUG_PRINT_INTERFACE_TIMES 0
 #define DEBUG_PRINT_REGVARS 0
+#define DEBUG_PRINT_REGARRS 0
+#define DEBUG_PRINT_REGACCESS 0
+#define DEBUG_PRINT_LOOP_ITER 0
+#define DEBUG_PRINT_CONTEXT_CREATION 0
+#define DEBUG_PRINT_CONTEXT_CREATION_DESCR_MAP 0
+
+#define DEBUG_PRINT_VAR_DESCR 0
 
 
 
@@ -67,5 +76,13 @@
 #define dprint_ifunc_end(func) \
   dprint_ifunc_times_end(func) \
   dprint_ifunc_borders_end(func) \
+
+#if DEBUG_PRINT_VAR_DESCR
+#define DPRINT_VAR_FMT "'%s' (%s)"
+#define DPRINT_VAR_ARG(var_descr) (var_descr ? var_descr->Name().c_str() : ""), (var_descr ? var_descr->SrcRefString::to_short_str().c_str() : "undef")
+#else
+#define DPRINT_VAR_FMT "'%s'"
+#define DPRINT_VAR_ARG(var_descr) (var_descr ? var_descr->Name().c_str() : "")
+#endif
 
 #endif //DEBUG_H_

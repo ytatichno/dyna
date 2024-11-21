@@ -68,8 +68,8 @@ JSON_OBJECT_BEGIN(RawInfo)
       const auto& na = a->Name();
       const auto& nb = b->Name();
       // TODO (kaniandr@gmail.com): use column for sort.
-      return fa < fb || fa == fb && a->Line() < b->Line() ||
-        fa == fb && a->Line() == b->Line() && na < nb;
+      return fa < fb || fa == fb && a->line() < b->line() ||
+        fa == fb && a->line() == b->line() && na < nb;
     }
   };
   struct LoopContextLess {
@@ -116,8 +116,8 @@ template<> struct Traits<const VariableString *> {
     Var V;
     V[Var::Name] = Obj->Name();
     V[Var::File] = Obj->FileName();
-    V[Var::Line] = std::max(Obj->Line(), 0L);
-    V[Var::Column] = std::max(Obj->Col(), 0L);
+    V[Var::Line] = std::max(Obj->line(), 0L);
+    V[Var::Column] = std::max(Obj->col(), 0L);
     Traits<Var>::unparse(JSON, V);
   }
 };

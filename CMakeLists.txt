@@ -1,14 +1,18 @@
 cmake_minimum_required (VERSION 3.0)
 project (Dyna VERSION 0.4 LANGUAGES CXX)
 set (Dyna_DESCRIPTION "Dynamic Analyzer Runtime")
-set (Dyna_HOMEPAGE_URL "https://bitbucket.org/dvm-system/dyna")
+set (Dyna_HOMEPAGE_URL "https://github.com/dvm-system/dyna")
 set (DYNA_FOLDER ""
   CACHE STRING "Specify IDE folder for DYNA Runtime.")
+set (DYNA_TOOLS_FOLDER ""
+  CACHE STRING "Specify IDE folder for DYNA Tools.")
 
 option(USE_JSON_BCL "Use JSON unparser from Base Construction Library (BCL)" OFF)
 if (USE_JSON_BCL)
   find_package(BCL 3.0 REQUIRED CONFIG)
   message(STATUS "BCL version: ${BCL_VERSION}")
+  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
@@ -69,8 +73,9 @@ if (MSVC)
     source_group(bcl FILES ${BCL_CORE_HEADERS})
   endif ()
 endif ()
-if (Dyna_install_path)
-  install (TARGETS da DESTINATION ${Dyna_install_path})
+if (Dyna_install)
+  install (TARGETS da)
 endif ()
 
 add_subdirectory (test)
+add_subdirectory(dyna-joiner)
