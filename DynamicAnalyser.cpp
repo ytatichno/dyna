@@ -97,6 +97,7 @@ void DynamicAnalyser::RegVariable(CSHandle cs, void* base_addr, long* arr_size /
   VariableString* descr = dynamic_cast<VariableString*>((BasicString*)cs);
   assert(descr != 0);
   m_contexts.get_current()->register_variable((long)base_addr, descr);
+  m_actual_init_host((long)base_addr, descr);
 }
 
 void DynamicAnalyser::RegArray(CSHandle cs, void* addr, size_t arr_size)
@@ -104,6 +105,11 @@ void DynamicAnalyser::RegArray(CSHandle cs, void* addr, size_t arr_size)
   VariableString* descr = dynamic_cast<VariableString*>((BasicString*)cs);
   assert(descr != 0);
   m_contexts.get_current()->register_array(dyna::AddrRange((long)addr, (long)addr + arr_size), descr);
+  // todo fix hardcoded 4 as element size
+  for (long x = (long)addr; x < (long)addr + arr_size * 4;
+       x += 4) { // todo replace 4 with type
+    m_actual_init_host((long)x, descr);
+  }
 }
 
 void DynamicAnalyser::RegAccess(dyna::AccessType accType, CSHandle access_cs, void*pAddr, CSHandle var_cs, void* pBase, bool arrAcc /*= false*/)
@@ -112,6 +118,23 @@ void DynamicAnalyser::RegAccess(dyna::AccessType accType, CSHandle access_cs, vo
   assert(descr != 0);
   m_anstorage.on_reg_access((long)pAddr, accType);
   m_contexts.get_current()->register_access((long)pAddr, accType, descr);
+  // m_actual_state_trans((long)pAddr, nullptr);
+  if (accType == dyna::AccessType::AT_WRITE && !inRegion) {
+    dprint("outRegionWrite[%ld, %ld] %s", (long)pAddr, (long)pBase,
+           descr->ToString().c_str());
+    m_actual_write_host((long)pAddr);
+  }
+  if (accType == dyna::AccessType::AT_WRITE && inRegion) {
+    dprint("inRegionWrite[%ld, %ld] %s", (long)pAddr, (long)pBase,
+           descr->ToString().c_str());
+    m_actual_write_gpu((long)pAddr);
+  }
+#ifdef mydbg
+  BasicString *acc = (BasicString *)access_cs;
+  if (descr->Rank() > 0)
+    std::cout << pAddr << " " << descr->ToString() << std::endl;
+// std::cout << pAddr << " " << acc-> << std::endl;
+#endif
 }
 
 void DynamicAnalyser::RegLoop(CSHandle cs, long *init, long *last, long *step)
@@ -276,10 +299,15 @@ void DynamicAnalyser::m_process_environment()
   else {
     istringstream(json) >> m_print_json;
   }
+  m_print_json = false;
+  dprint("%d\n", (int)m_print_json);
 
 #ifndef USE_JSON_BCL
   if (m_print_json) {
-    throw runtime_error("dynamic analyser compiled without JSON support. Please recompile it with flag USE_JSON_BCL or set environment variable " DYNA_ENV_OUTPUT_JSON "=0.");
+    dprint("\n\nHERERERERE\n\n");
+    throw runtime_error("dynamic analyser compiled without JSON support. "
+                        "Please recompile it with flag USE_JSON_BCL or set "
+                        "environment variable " DYNA_ENV_OUTPUT_JSON "=0.");
   }
 #endif
 
