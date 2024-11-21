@@ -309,4 +309,19 @@ inline void DynamicAnalyser::m_actual_write_gpu(addr_t addr) {
     break;
   }
 }
+inline void DynamicAnalyser::m_actual_init_host(addr_t addr,
+                                                BasicString *contextString) {
+
+  // auto it = m_actualityStorage.find(addr);
+  // dyna::ActualStatus status = it->second.status;
+  // // [[unlikely]]
+  // if (status != dyna::ActualStatus::INACTUAL) {
+  // } // must be unreached error
+  // // ActualString *contextString = it->second.contextString;
+  dyna::ActualInfo info{dyna::ActualStatus::ACTUAL_HOST, contextString};
+  m_actualityStorage[addr] = info;
+  dprint("init[%ld] of %s  ", addr, contextString->ToString().c_str());
+  VariableType vtype = ((VariableString *)contextString)->Type();
+  dprint("type is %s\n", NS_VariableType::ToString(vtype).c_str());
+}
 
