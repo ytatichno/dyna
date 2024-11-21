@@ -1,13 +1,22 @@
-#include <iostream>
-#include <fstream>
 #include <cassert>
-#include <stdexcept>
-#include <sstream>
 #include <csignal>
+#include <cstdint>
+#include <cstdio>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <stdexcept>
 
+#include "Context.h"
 #include "ContextStringParser.h"
+#include "DBEntity_VariableType.h"
 #include "DynamicAnalyser.h"
+#include "RegionActualMap.hpp"
+#include "debug.h"
 #include "memory_usage.h"
+
+#define mydbg 1
 
 using namespace std;
 
@@ -228,3 +237,51 @@ void DynamicAnalyser::m_print_calls_info()
     dprint("function %s: num_calls = %zu total time = %f\n", name, n, t);
   }
 }
+// inline void DynamicAnalyser::m_actual_state_trans(addr_t addr, ActualString*
+// contextString){
+
+//     auto it = m_actualityStorage.find(addr);
+//     // if (it == m_actualityStorage.end()) {  // suspiciously uninitialized
+//     //   m_actualityStorage[x_beg] = dyna::ActualStatus::ACTUAL_REGION;
+//     //   continue;
+//     // }
+//     dyna::ActualStatus status = it->second.status;
+//     ActualInfo info{status, contextString};
+//     switch (status) {
+//     case dyna::ActualStatus::INACTUAL: // perhaps error
+//       break;
+//     case dyna::ActualStatus::ACTUAL_HOST: // expected scenario
+//       m_actualityStorage[addr] = info;
+//       break;
+//     case dyna::ActualStatus::ACTUAL_REGION: // unnecassery directive
+//       break;
+//     case dyna::ActualStatus::ACTUAL_BOTH: // unnecassery directive
+//       break;
+//     }
+// }
+inline void DynamicAnalyser::m_actual_write_host(addr_t addr) {
+
+  auto it = m_actualityStorage.find(addr);
+  if (it == m_actualityStorage.end()) {
+    dprint("unreg[%ld]\n", addr);
+    return;
+  }
+  dyna::ActualStatus status = it->second.status;
+  BasicString *contextString = it->second.contextString;
+  dyna::ActualInfo info{dyna::ActualStatus::ACTUAL_HOST, contextString};
+  // switch can be collapsed for performance
+  switch (status) {
+  case dyna::ActualStatus::INACTUAL:
+    m_actualityStorage[addr] = info;
+    break;
+  case dyna::ActualStatus::ACTUAL_HOST: // some local changes, ok
+    break;
+  case dyna::ActualStatus::ACTUAL_REGION:
+    m_actualityStorage[addr] = info;
+    break;
+  case dyna::ActualStatus::ACTUAL_BOTH:
+    m_actualityStorage[addr] = info;
+    break;
+  }
+}
+

@@ -1,15 +1,25 @@
 #pragma once
-#include <string>
-#include <vector>
-#include <map>
+#include <cstdarg>
+#include <cstddef>
+#include <cstdint>
 #include <fstream>
+#include <map>
 #include <memory>
+#include <string>
+#include <sys/types.h>
+#include <vector>
+#include <queue>
 
+#include "type_aliases.hpp"
 #include "Context.h"
-#include "debug.h"
+#include "ContextStringParser.h"
+#include "Result/AnalysisStorage.hpp"
+#include "RegionActualMap.hpp"
+// #include "debug.h"
 
 typedef void* CSHandle; //Context string handle type.
 class ContextStringsStore;
+extern bool inRegion;
 
 
 class DynamicAnalyser
@@ -88,6 +98,10 @@ private: // methods
     return it->second;
   }
   void m_print_calls_info();
-
+  /// @deprecated
+  inline void m_actual_state_trans(addr_t addr, ActualString* contextString);
+  /// change state of address actuality in actuality map on write from host
+  inline void m_actual_write_host(addr_t addr);
 };
 /*********************************************************************************************/
+  dyna::RegionActualMap m_actualityStorage; // hide it behind conditional compilation
