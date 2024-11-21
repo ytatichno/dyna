@@ -2,7 +2,10 @@
 #include <list>
 #include <map>
 #include <string>
+#include "type_aliases.hpp"
 #include "DBEntity_VariableType.h"
+
+
 
 //************************************************************************************//
 //** Перечисление типов, соответствующих контекстным строкам "char* ContextString" **//
@@ -15,7 +18,8 @@ enum StringType{
   ST_LOOP,
   ST_FUNC_CALL,
   ST_FUNC_REG,
-  ST_COMMON
+  ST_COMMON,
+  ST_ACTUAL
 };
 //****************************************************************************//
 
@@ -45,7 +49,7 @@ class SplitString{
 
   public:
 
-    std::string&  GetValue(char* key);      // Возвращает значение контекстной строки по ключу
+    std::string&  GetValue(const char* key);      // Возвращает значение контекстной строки по ключу
                             //Если ключ не найден, то возвращается пустая строка
 
 };
@@ -298,6 +302,32 @@ public:
 /*******************************************/
 
 
+/*******************************************/
+/***** Stores "pragma dvm actual" info *****/
+/*******************************************/
+class ActualString: public BasicString{
+
+  long  m_line;
+
+  // /// array start address
+  // addr_t baseAddr;
+
+  // std::list<std::string>    m_variablesLst;
+
+public:
+
+  ActualString(StringType sType, SplitString* sItems);
+  ActualString(StringType sType, const std::string& fileName, long line);
+
+public:
+
+  inline long Line() { return m_line; };
+  std::string  ToString();
+
+};
+/*******************************************/
+
+
 /*******************************************************/
 /***** Класс, хранящий всю контекстную информацию *****/
 /*****************************************************/
@@ -324,4 +354,3 @@ public:
   BasicString*  GetString(void* keyAddress);
 };
 /*****************************************************************/
-

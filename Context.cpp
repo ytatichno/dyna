@@ -1,4 +1,5 @@
 #include "Context.h"
+#include "Result/AnalysisStorage.hpp"
 
 #ifdef USE_JSON_BCL
 #include "JsonObjects.h"

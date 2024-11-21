@@ -1,6 +1,7 @@
 #include "Auxiliary.h"
 #include "ContextStringParser.h"
 #include "debug.h"
+#include <string>
 
 std::string  g_emptyString = "";
 
@@ -70,7 +71,7 @@ SplitString::SplitString(const char *contextStr)
 std::string&  SplitString::ContextType(){return m_contextType;}
 std::map<std::string, std::string>*  SplitString::Items(){return &m_items;}
 
-std::string&    SplitString::GetValue(char *key)
+std::string&    SplitString::GetValue(const char *key)
 {
   std::map<std::string, std::string>::iterator iter;
 
@@ -386,6 +387,30 @@ std::string  CommonBlockString::ToString(){
     str += ";";
   }
 
+  return str;
+}
+
+ActualString::ActualString(StringType sType, SplitString* sItems)
+ : ActualString(sType,
+                sItems->GetValue("file"),
+                std::stol(sItems->GetValue("line"))
+                ) { }
+
+ActualString::ActualString(StringType sType, const std::string& fileName, long line)
+ : BasicString(sType){
+
+  SetFileName(fileName);
+  m_line = line;
+ }
+
+std::string ActualString::ToString(){
+  std::string str;
+  str  = "pragma_actual_info: ";
+  str += "file name = ";
+  str += FileName();
+  str += "; line = ";
+  str += Auxiliary::ToString(m_line);
+  str += ";";
   return str;
 }
 

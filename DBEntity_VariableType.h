@@ -10,7 +10,7 @@ enum VariableType
   VT_CHAR = 0,      // тип переменной - character
   VT_BOOLEAN,        // тип переменной - logical
   VT_INTEGER,        // тип переменной - integer
-  VT_LONG,        // тип переменной - integer*8
+  VT_LONG,        // тип переменной - integer*
   VT_FLOAT,        // тип переменной - real
   VT_DOUBLE,        // тип переменной - double precision
   VT_FLOAT_COMPLEX,    // тип переменной - complex
