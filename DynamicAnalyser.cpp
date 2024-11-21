@@ -210,9 +210,13 @@ void DynamicAnalyser::RegPragmaActual(addr_t baseAddr, uint32_t elementSize,
   //   // std::vector<uint32_t> rangesEnds();
   // }
 }
-void DynamicAnalyser::RegPragmaGetActual(CSHandle staticContextHandle, const char *Identifiers){
-  dprint("%s\n", Identifiers);
 
+void DynamicAnalyser::RegPragmaGetActual(CSHandle staticContextHandle,
+                                         const char *Identifiers) {
+  // dprint("%s\n", Identifiers);
+  if (inRegion) {
+    dprint("get_actual can't be placed inside a region\n");
+  }
 }
 
 static inline bool iequals(const string& a, const string& b)
