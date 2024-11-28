@@ -28,6 +28,7 @@ set (Dyna_srcs
   omp_dbg.cpp
   Result/AnalysisStorage.cpp
   Result/DependencyAnalysisResult.cpp
+  string_utils.cpp
 )
 set (Dyna_headers
   # ActualityStorage.h
@@ -48,6 +49,7 @@ set (Dyna_headers
   Result/AnalysisStorage.hpp
   Result/DependencyAnalysisResult.hpp
   # Result/RegionExchangeAnalysisResult.hpp
+  string_utils.h
   ${CMAKE_CURRENT_BINARY_DIR}/dyna-config.h
 )
 if (USE_JSON_BCL)

@@ -22,6 +22,7 @@ public:
   void on_reg_access(long addr, AccessType atype);
   void add_analysis_results(const Context& context);
   std::string toJSON() const;
+  void add_from_json(const std::string& json_str, ContextStringsStore& cs_store);
   template <class OStream>
   void debug_print(OStream& out) const
   {
