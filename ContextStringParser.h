@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <list>
 #include <map>
 #include <string>
@@ -135,7 +136,7 @@ class VariableString: public SrcRefString
 {
     std::string    m_name;      // Имя переменной
 
-    VariableType  m_type;      // Тип переменной
+    int32_t  m_type;      // Тип переменной
 
     int        m_rank;      // размерность массива(0 для скалярной переменной)
     bool m_local;
@@ -144,7 +145,7 @@ class VariableString: public SrcRefString
 
     // Конструктор
     VariableString(StringType sType, SplitString* sItems);
-    VariableString(const std::string& name, const std::string& file_name, long line, long col, VariableType type, int rank, bool local=false)
+    VariableString(const std::string& name, const std::string& file_name, long line, long col, int32_t type, int rank, bool local=false)
       : SrcRefString(ST_VAR, file_name, line, col)
       , m_name(name)
       , m_type(type)
@@ -158,7 +159,7 @@ class VariableString: public SrcRefString
     // Возвращает имя переменной
     const std::string& Name() const;
     // Возвращает тип переменной
-    VariableType Type() const;
+    int32_t Type() const;
     // Функция возвращает размерность массива
     int Rank() const;
     inline bool is_local() const { return m_local; }

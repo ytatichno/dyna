@@ -1,6 +1,7 @@
 #include "Auxiliary.h"
 #include "ContextStringParser.h"
 #include "debug.h"
+#include <cstdint>
 #include <string>
 
 std::string  g_emptyString = "";
@@ -130,21 +131,7 @@ VariableString::VariableString(StringType sType, SplitString*sItems)
 
   m_name = sItems->GetValue("name1");
   tmpStr = sItems->GetValue("vtype");
-  if (tmpStr != "")
-  {
-    switch(Auxiliary::FromString<int>(tmpStr)){
-      case 0: m_type = VT_CHAR; break;
-      case 1: m_type = VT_INTEGER; break;
-      case 2: m_type = VT_LONG; break;
-      case 3: m_type = VT_FLOAT; break;
-      case 4: m_type = VT_DOUBLE; break;
-      case 5: m_type = VT_FLOAT_COMPLEX; break;
-      case 6: m_type = VT_DOUBLE_COMPLEX; break;
-      default: m_type = VT_UNKNOWN_TYPE;
-    }
-  }
-  else{m_type = VT_UNKNOWN_TYPE;}
-
+  m_type = Auxiliary::FromString<int>(tmpStr);
   tmpStr = sItems->GetValue("rank");
   m_rank = tmpStr == "" ? 0 : Auxiliary::FromString<long>(tmpStr);
   tmpStr = sItems->GetValue("local");
@@ -152,7 +139,7 @@ VariableString::VariableString(StringType sType, SplitString*sItems)
 }
 
 const std::string&  VariableString::Name() const {return m_name;}
-VariableType  VariableString::Type() const {return m_type;}
+int32_t  VariableString::Type() const {return m_type;}
 int        VariableString::Rank() const {return m_rank;}
 
 std::string  VariableString::ToString() const

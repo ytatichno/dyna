@@ -3,6 +3,7 @@
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 #if BUILD_WITH_LLVM_INTERFACE
 #include "DynamicAnalyser.h"
@@ -18,7 +19,7 @@ extern "C"
 {
 void sapforRegVar(void* DIVar, void* Addr)
 {
-#if !DEBUG_EMPTY_FUNCTIONS && !DEBUG_IGNORE_VARS && !DEBUG_IGNORE_REG_VARS
+#if !DEBUG_EMPTY_FUNCTIONS && !DEBUG_IGNORE_VARS //&& !DEBUG_IGNORE_REG_VARS
   dprint_ifunc_begin(RegVar);
   da.RegVariable(DIVar, Addr);
   dprint_ifunc_end(RegVar);
@@ -27,7 +28,7 @@ void sapforRegVar(void* DIVar, void* Addr)
 
 void sapforRegArr(void* DIVar, size_t ArrSize, void* Addr)
 {
-#if !DEBUG_EMPTY_FUNCTIONS && !DEBUG_IGNORE_ARRS && !DEBUG_IGNORE_REG_ARRS
+#if !DEBUG_EMPTY_FUNCTIONS && !DEBUG_IGNORE_ARRS// && !DEBUG_IGNORE_REG_ARRS
   dprint_ifunc_begin(RegArr);
   da.RegArray(DIVar, Addr, ArrSize);
   dprint_ifunc_end(RegArr);
@@ -170,9 +171,9 @@ void sapforAllocatePool(void*** PoolPtr, size_t Size)
 
 void sapforDeclTypes(size_t Num, size_t* Ids, size_t* Sizes)
 {
-#if !DEBUG_EMPTY_FUNCTIONS && 0
-  dprint_ifunc_begin(DeclTypes);
   size_t I;
+#if !DEBUG_EMPTY_FUNCTIONS //&& 0
+  dprint_ifunc_begin(DeclTypes);
   printf("called sapforDeclTypes\n");
   printf("Num = %zu\n\n", Num);
   for(I = 0; I < Num; ++I) {
@@ -181,6 +182,11 @@ void sapforDeclTypes(size_t Num, size_t* Ids, size_t* Sizes)
   printf("\n");
   dprint_ifunc_end(DeclTypes);
 #endif
+  std::unique_ptr<int32_t[]> types_tabel = std::make_unique<int32_t[]>(Num);
+  for(I = 0; I < Num; ++I){
+    types_tabel[Ids[I]] = Sizes[I];
+  }
+  da.set_type_table(std::move(types_tabel));
 }
 
 void sapforRegionIn() {

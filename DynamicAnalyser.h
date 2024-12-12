@@ -85,6 +85,13 @@ public: // methods
   {
     return m_calls_info(name).second;
   }
+  /**
+   * Expected to be used once in @ref sapforDeclTypes
+   */
+  inline void set_type_table(std::unique_ptr<int32_t[]> types_table) {
+    m_types_table = std::move(types_table);
+  }
+
 
 private: // types
   typedef std::pair<double, size_t> InterfaceCallsInfo;
@@ -97,6 +104,7 @@ private: // variables
   dyna::AnalysisStorage m_anstorage; // глобальное хранилище результатов анализа.
   dyna::RegionActualMap m_actualityStorage; // hide it behind conditional compilation
   ActualPragmaCallsStore m_actualPragmaCallsStore;
+  std::unique_ptr<int32_t[]> m_types_table;
 
   bool m_print_json;
   std::ostream* m_out;
@@ -122,7 +130,8 @@ private: // methods
   inline void m_actual_write_host(addr_t addr);
   inline void m_actual_write_gpu(addr_t addr);
   /// initializes actuality map for certain address
-  inline void m_actual_init_host(addr_t addr, BasicString *contextString);
+  inline void m_actual_init_host(addr_t addr, VariableString *contextString);
   inline void m_redundant_copy_to_gpu(addr_t addr);
+  inline int32_t m_get_type_size(int32_t vtype) { return m_types_table[vtype]; }
 };
 /*********************************************************************************************/
