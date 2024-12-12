@@ -105,11 +105,13 @@ void DynamicAnalyser::RegVariable(CSHandle cs, void* base_addr, long* arr_size /
 void DynamicAnalyser::RegArray(CSHandle cs, void* addr, size_t arr_size)
 {
   VariableString* descr = dynamic_cast<VariableString*>((BasicString*)cs);
+  dprint("register array %s\n", descr->Name().c_str());
   assert(descr != 0);
   m_contexts.get_current()->register_array(dyna::AddrRange((long)addr, (long)addr + arr_size), descr);
   // todo fix hardcoded 4 as element size
-  for (long x = (long)addr; x < (long)addr + arr_size * 4;
-       x += 4) { // todo replace 4 with type
+  int32_t elem_size = m_types_table[descr->Type()];
+  for (long x = (long)addr; x < (long)addr + arr_size * elem_size;
+       x += elem_size) { // todo replace 4 with type
     m_actual_init_host((long)x, descr);
   }
 }
@@ -122,12 +124,12 @@ void DynamicAnalyser::RegAccess(dyna::AccessType accType, CSHandle access_cs, vo
   m_contexts.get_current()->register_access((long)pAddr, accType, descr);
   // m_actual_state_trans((long)pAddr, nullptr);
   if (accType == dyna::AccessType::AT_WRITE && !inRegion) {
-    dprint("outRegionWrite[%ld, %ld] %s", (long)pAddr, (long)pBase,
+    dprint("outRegionWrite[%ld, %ld] %s\n", (long)pAddr, (long)pBase,
            descr->ToString().c_str());
     m_actual_write_host((long)pAddr);
   }
   if (accType == dyna::AccessType::AT_WRITE && inRegion) {
-    dprint("inRegionWrite[%ld, %ld] %s", (long)pAddr, (long)pBase,
+    dprint("inRegionWrite[%ld, %ld] %s\n", (long)pAddr, (long)pBase,
            descr->ToString().c_str());
     m_actual_write_gpu((long)pAddr);
   }
@@ -192,7 +194,7 @@ void DynamicAnalyser::UnregFunction(CSHandle staticContextHandle)
   m_contexts.end_function();
 }
 
-void DynamicAnalyser::RegPragmaActual(addr_t baseAddr, uint32_t elementSize,
+void DynamicAnalyser::RegPragmaActual(addr_t baseAddr,
                                       std::vector<uint32_t> args) {
 
   if (inRegion) {
@@ -202,7 +204,10 @@ void DynamicAnalyser::RegPragmaActual(addr_t baseAddr, uint32_t elementSize,
   if (args.size() % 2 != 0)
     dprint("ERROR\n");
 
-
+  // let's extract element size from ContextStringStore
+  BasicString *cs = m_contextStringsStore->GetString((void *)baseAddr);
+  VariableString *descr = dynamic_cast<VariableString *>(cs);
+  int32_t elementSize = m_types_table[descr->Type()] / 8; // >> 3
   m_actualPragmaCallsStore.push(
       PragmaActualCall(baseAddr, elementSize, std::move(args)));
 
@@ -269,9 +274,9 @@ void DynamicAnalyser::RegRegionEntrance() {
 
         m_redundant_copy_to_gpu(x_beg);
         // todo update val by ref not rewrite with copy
-        auto it = m_actualityStorage.find(x_beg);
-        it->second.status = dyna::ActualStatus::ACTUAL_BOTH;
-        m_actualityStorage[x_beg] = it->second;
+        // auto it = m_actualityStorage.find(x_beg);
+        // it->second.status = dyna::ActualStatus::ACTUAL_BOTH;
+        // m_actualityStorage[x_beg] = it->second;
       }
       break;
     }
@@ -429,7 +434,7 @@ inline void DynamicAnalyser::m_actual_write_gpu(addr_t addr) {
   }
 }
 inline void DynamicAnalyser::m_actual_init_host(addr_t addr,
-                                                BasicString *contextString) {
+                                                VariableString *contextString) {
 
   // auto it = m_actualityStorage.find(addr);
   // dyna::ActualStatus status = it->second.status;
@@ -437,17 +442,20 @@ inline void DynamicAnalyser::m_actual_init_host(addr_t addr,
   // if (status != dyna::ActualStatus::INACTUAL) {
   // } // must be unreached error
   // // ActualString *contextString = it->second.contextString;
-  dyna::ActualInfo info{dyna::ActualStatus::ACTUAL_HOST, contextString};
+  dyna::ActualInfo info{dyna::ActualStatus::ACTUAL_BOTH, contextString};
   m_actualityStorage[addr] = info;
-  dprint("init[%ld] of %s  ", addr, contextString->ToString().c_str());
-  VariableType vtype = ((VariableString *)contextString)->Type();
-  dprint("type is %s\n", NS_VariableType::ToString(vtype).c_str());
+  dprint("init[%ld] of %s with type = %d\n", addr,
+         contextString->Name().c_str(), contextString->Type());
+  // VariableType vtype = ((VariableString *)contextString)->Type();
 }
-
 
 inline void DynamicAnalyser::m_redundant_copy_to_gpu(addr_t addr) {
   dprint("red?[%ld]", addr);
   auto it = m_actualityStorage.find(addr);
+  if (it == m_actualityStorage.end()) {
+    dprint("uninitialized actuality map read\n");
+    return;
+  }
   dyna::ActualStatus status = it->second.status;
   printf("[%d]\n", (int)status);
   // if (status == dyna::ActualStatus::ACTUAL_REGION ||

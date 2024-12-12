@@ -72,7 +72,7 @@ public: // methods
   // Регистрирует формальный параметр функции
   void RegFormalParameter(CSHandle staticContextHandle, int pos, void* pAddr, long* arrSize = NULL);
   // Регистрирует операцию pragma dvm actual
-  void RegPragmaActual(addr_t baseAddr, uint32_t elementSize, std::vector<uint32_t> args);
+  void RegPragmaActual(addr_t baseAddr, std::vector<uint32_t> args);
   // Регистрирует операцию pragma dvm get_actual undone
   void RegPragmaGetActual(CSHandle staticContextHandle, const char *Identifiers);
   void RegRegionEntrance();
@@ -132,6 +132,6 @@ private: // methods
   /// initializes actuality map for certain address
   inline void m_actual_init_host(addr_t addr, VariableString *contextString);
   inline void m_redundant_copy_to_gpu(addr_t addr);
-  inline int32_t m_get_type_size(int32_t vtype) { return m_types_table[vtype]; }
+  // inline int32_t m_get_type_size(int32_t vtype) { return m_types_table[vtype]; }
 };
 /*********************************************************************************************/

@@ -225,7 +225,7 @@ void sapforRegActual(void *baseAddr, uint32_t elementSize, uint32_t arg_c, ...) 
   }
   va_end(args);
 
-  da.RegPragmaActual((addr_t)baseAddr, elementSize, arguments);
+  da.RegPragmaActual((addr_t)baseAddr, arguments);
 
   dprint_ifunc_end(RegActual);
 }
