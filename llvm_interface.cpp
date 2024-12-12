@@ -209,9 +209,9 @@ void sapforRegionOut() {
  * @param ... boundaries of slice to copy to gpu, single element has bound doubled
  * @example #pragma dvm actual(arr[1:x][3][0:2]) -> sapforRegActual(&arr, sizeof *arr, 6, 1, x, 3, 3, 0, 2);
  */
-void sapforRegActual(void *baseAddr, uint32_t elementSize, uint32_t arg_c, ...) {
+void sapforRegActual(void *baseAddr, uint32_t arg_c, ...) {
   dprint_ifunc_begin(RegActual);
-  dprint("regactual baseaddr: %lld\n", baseAddr);
+  dprint("regactual baseaddr: %p\n", baseAddr);
   dprint("regactual arg_c %u\n", arg_c);
 
   va_list args;
@@ -229,11 +229,25 @@ void sapforRegActual(void *baseAddr, uint32_t elementSize, uint32_t arg_c, ...) 
 
   dprint_ifunc_end(RegActual);
 }
-void sapforRegGetActual(char* Identifiers){
-  dprint_ifunc_begin(RegActual);
-  // printf("\n\n!!!sapforRegGetActual!!! \n\n\n");
-  da.RegPragmaGetActual(NULL, Identifiers);
-  dprint_ifunc_end(RegActual);
+void sapforRegGetActual(void *baseAddr, uint32_t arg_c, ...) {
+  dprint_ifunc_begin(RegGetActual);
+  dprint("reggetactual baseaddr: %p\n", baseAddr);
+  dprint("reggetactual arg_c %u\n", arg_c);
+
+  va_list args;
+  va_start(args, arg_c);
+
+  // wrap variadic into vector
+  std::vector<uint32_t> arguments(arg_c);
+
+  for (uint32_t i = 0; i < arg_c; ++i) {
+    arguments[i] = va_arg(args, uint32_t);
+  }
+  va_end(args);
+
+  da.RegPragmaGetActual((addr_t)baseAddr, arguments);
+
+  dprint_ifunc_end(RegGetActual);
 }
 } // end of extern "C"
 

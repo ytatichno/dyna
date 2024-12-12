@@ -231,12 +231,12 @@ void DynamicAnalyser::RegPragmaActual(addr_t baseAddr,
   // }
 }
 
-void DynamicAnalyser::RegPragmaGetActual(CSHandle staticContextHandle,
-                                         const char *Identifiers) {
+void DynamicAnalyser::RegPragmaGetActual(addr_t baseAddr, std::vector<uint32_t> args) {
   // dprint("%s\n", Identifiers);
   if (inRegion) {
     dprint("get_actual can't be placed inside a region\n");
   }
+  
 }
 
 void DynamicAnalyser::RegRegionEntrance() {
