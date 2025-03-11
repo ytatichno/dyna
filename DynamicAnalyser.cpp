@@ -79,24 +79,31 @@ void DynamicAnalyser::Init(const std::string &fileName) {
 void DynamicAnalyser::AddContextString(CSHandle *keyAddress, char *str) {
   // Добавляем контекстную строку в хранилище контекстных строк
   BasicString *cntxtStr = m_contextStringsStore->AddString(*keyAddress, str);
+  // m_contextStringsStore->AddString(str);
 }
 
 void DynamicAnalyser::RegVariable(CSHandle cs, void *base_addr,
                                   long *arr_size /*= NULL*/) {
-  VariableString *descr = dynamic_cast<VariableString *>((BasicString *)cs);
-  assert(descr != 0);
-  m_contexts.get_current()->register_variable((long)base_addr, descr);
-  m_actual_init_host((long)base_addr, descr);
+  // todo maybe uncomment
+  // printf("reg variable\n");
+  // printf(">>>>%p\n", cs);
+  // dprint("context string on reg %ld\n", (long)cs);
+  // VariableString *descr = dynamic_cast<VariableString *>((BasicString *)cs);
+  // assert(descr != 0);
+  // m_contexts.get_current()->register_variable((long)base_addr, descr);
+  // // m_contextStringsStore->AssocAdress(cs, addr_t address)
+  // m_actual_init_host((long)base_addr, descr);
 }
 
 void DynamicAnalyser::RegArray(CSHandle cs, void *addr, size_t arr_size) {
   VariableString *descr = dynamic_cast<VariableString *>((BasicString *)cs);
-  dprint("register array %s\n", descr->Name().c_str());
+  dprint(">>>> %s\n", descr->ToString().c_str());
+  dprint("register array %s %ld\n", descr->Name().c_str(), addr);
   assert(descr != 0);
   m_contexts.get_current()->register_array(
       dyna::AddrRange((long)addr, (long)addr + arr_size), descr);
   // todo fix hardcoded 4 as element size
-  int32_t elem_size = m_types_table[descr->Type()];
+  int32_t elem_size = m_types_table[descr->Type()] / 8;
   for (long x = (long)addr; x < (long)addr + arr_size * elem_size;
        x += elem_size) { // todo replace 4 with type
     m_actual_init_host((long)x, descr);
@@ -122,9 +129,9 @@ void DynamicAnalyser::RegAccess(dyna::AccessType accType, CSHandle access_cs,
     m_actual_write_gpu((long)pAddr);
   }
 #ifdef mydbg
-  BasicString *acc = (BasicString *)access_cs;
-  if (descr->Rank() > 0)
-    std::cout << pAddr << " " << descr->ToString() << std::endl;
+  // BasicString *acc = (BasicString *)access_cs;
+  // if (descr->Rank() > 0)
+  //   std::cout << pAddr << " " << descr->ToString() << std::endl;
 // std::cout << pAddr << " " << acc-> << std::endl;
 #endif
 #if DEBUG_PRINT_REGACCESS
@@ -189,49 +196,19 @@ void DynamicAnalyser::RegPragmaActual(addr_t baseAddr,
     dprint("ERROR\n");
 
   // let's extract element size from ContextStringStore
-  BasicString *cs = m_contextStringsStore->GetString((void *)baseAddr);
-  VariableString *descr = dynamic_cast<VariableString *>(cs);
+  // BasicString *cs = m_contextStringsStore->GetString((void *)baseAddr);
+  const VariableString *descr = m_contexts.get_current()->get_var_descr(baseAddr);
+  dprint("&&&%lld\n", (long long)descr);
   int32_t elementSize = m_types_table[descr->Type()] / 8; // >> 3
+  dprint("ELEMENT_SIZE: %d", elementSize);
   m_actualPragmaCallsStore.push(
       PragmaActualCall(baseAddr, elementSize, std::move(args)));
 
-  // switch (arg_c) {  // candidates for parallelisation
-  // case 0: // whole array
 
-  //   break;
-  // case 2: {
-  //   addr_t x_beg = baseAddr + va_arg(args, index_t),
-  //          x_end = baseAddr + va_arg(args, index_t);
-  //   for (; x_end != x_beg; ++x_beg) {
-  //     m_actual_state_trans(x_beg);
-  //   }
-  //   break;
-  // }
-  // // case 4: {
-  // //   addr_t x_beg = baseAddr + va_arg(args, index_t),
-  // //          x_end = baseAddr + va_arg(args, index_t);
-
-  // //   for (; x_end != x_beg; ++x_beg) {
-  // //     addr_t y_beg = x_beg + va_arg(args, index_t),
-  // //            y_end = x_beg + va_arg(args, index_t);
-  // //     for (;y_end != y_beg; ++y_beg){
-  // //       m_actual_state_trans(y_beg);
-  // //     }
-  // //   }
-
-  // //   break;
-
-  // // }
-  // // case 6
-  // /////////
-  // // break
-  // default:  // more than 3 ranges
-  //   // std::vector<uint32_t> rangesBegins();
-  //   // std::vector<uint32_t> rangesEnds();
-  // }
 }
 
-void DynamicAnalyser::RegPragmaGetActual(addr_t baseAddr, std::vector<uint32_t> args) {
+void DynamicAnalyser::RegPragmaGetActual(addr_t baseAddr,
+                                         std::vector<uint32_t> args) {
   // dprint("%s\n", Identifiers);
   if (inRegion) {
     dprint("get_actual can't be placed inside a region\n");
@@ -240,21 +217,41 @@ void DynamicAnalyser::RegPragmaGetActual(addr_t baseAddr, std::vector<uint32_t> 
 }
 
 void DynamicAnalyser::RegRegionEntrance() {
-  printf("CallQueue: %ld\n", m_actualPragmaCallsStore.size());
-  // printf("args   %u  %u\n", m_actualPragmaCallsStore.front().args[0],
-  //       m_actualPragmaCallsStore.front().args[1]);
-  // fflush(stdout);
+  // iterate through remembered "dvm actual" calls
   while (!m_actualPragmaCallsStore.empty()) {
     PragmaActualCall &call = m_actualPragmaCallsStore.front();
+    const VariableString *cs = m_contexts.get_current()->get_var_descr(call.baseAddr);
+    if (cs->Type() == ST_VAR) {
+      m_redundant_copy_to_gpu(call.baseAddr);
+      continue;
+    }
+    const ArrayVariableString *arrDescr = (const ArrayVariableString *)(cs);
+    dprint("^^^%lld  %lu\n", (long long)arrDescr, arrDescr->Dims().size());
+    // fill unfilled slice's dimensions with bounds
+    if(call.args.size() != 0){
+      for(int i = call.args.size()/2; i < arrDescr->Dims().size(); i++){
+        call.args.push_back(0);
+        call.args.push_back(arrDescr->Dims()[i]);
+      }
+    }
+
+    uint8_t elementSize = m_types_table[arrDescr->Type()] / 8;
+    addr_t x_beg, x_end;
     switch (call.args.size()) { // candidates for parallelisation
     case 0:                     // whole array
+      x_end = elementSize;
+      for (const auto &dim : arrDescr->Dims()) {
+        x_end *= dim;
+      }
 
+      for (addr_t x_beg = call.baseAddr; x_beg < x_end; x_beg += elementSize) {
+        m_redundant_copy_to_gpu(x_beg);
+      }
       break;
-    case 2: {
-      addr_t x_beg = call.baseAddr + call.args[0] * call.elementSize,
-             x_end = call.baseAddr + call.args[1] * call.elementSize;
+    case 2:
+      x_beg = call.baseAddr + call.args[0] * elementSize;
+      x_end = call.baseAddr + call.args[1] * elementSize;
       for (; x_beg <= x_end; x_beg += call.elementSize) {
-
         m_redundant_copy_to_gpu(x_beg);
         // todo update val by ref not rewrite with copy
         // auto it = m_actualityStorage.find(x_beg);
@@ -262,7 +259,51 @@ void DynamicAnalyser::RegRegionEntrance() {
         // m_actualityStorage[x_beg] = it->second;
       }
       break;
-    }
+    case 4: {
+
+      /// size of continious adresses to be checked in bytes
+      uint step = (call.args[3] - call.args[2] + 1) * elementSize;
+      /// number of continious steps
+      uint stepsNum = call.args[1] - call.args[0] + 1;
+
+      const auto lastDim = arrDescr->Dims().at(1);
+      /// size of intervals between continious steps
+      uint skipStep = lastDim * elementSize - step;
+      /// ptr variable initialized with start address
+      addr_t ptr = (lastDim * call.args[0] + call.args[2]) * elementSize + call.baseAddr;
+      for (uint i = 0; i < stepsNum; i++, ptr += skipStep) {
+        auto ptr_end = ptr + step;
+        for (; ptr < ptr_end; ptr += elementSize) {
+          m_redundant_copy_to_gpu(ptr);
+        }
+      }
+
+    } break;
+    case 6: {
+      /// size of continious adresses to be checked in bytes
+      uint step = (call.args[5] - call.args[4] + 1) * elementSize;
+      /// number of continious steps in one big step
+      uint stepsNum = call.args[3] - call.args[2] + 1;
+      /// number of big steps of small step
+      uint bigStepsNum = call.args[1] - call.args[0] + 1;
+      const auto lastDim = arrDescr->Dims().at(2);
+      const auto preLastDim = arrDescr->Dims().at(1);
+      /// size of small skip as interval btw cont steps in one big step
+      uint skipStep = lastDim * elementSize - step;
+      /// size of big skip as interval
+      uint bigSkipStep = (preLastDim - (call.args[3] - call.args[2] + 1)) *
+                         lastDim * elementSize; // +?(skipStep)
+      addr_t ptr = (lastDim * (preLastDim * call.args[0] + call.args[2]) +
+                   call.args[4]) * elementSize + call.baseAddr;
+      for (uint i = 0; i < bigStepsNum; i++, ptr += bigSkipStep) {
+        for (uint j = 0; j < stepsNum; j++, ptr += skipStep) {
+          auto ptr_end = ptr + step;
+          for (; ptr < ptr_end; ptr += elementSize) {
+            m_redundant_copy_to_gpu(ptr);
+          }
+        }
+      }
+    } break;
     }
     m_actualPragmaCallsStore.pop();
   }
@@ -430,7 +471,7 @@ inline void DynamicAnalyser::m_actual_init_host(addr_t addr,
 }
 
 inline void DynamicAnalyser::m_redundant_copy_to_gpu(addr_t addr) {
-  dprint("red?[%ld]", addr);
+  dprint("red_to_gpu?[%ld]", addr);
   auto it = m_actualityStorage.find(addr);
   if (it == m_actualityStorage.end()) {
     dprint("uninitialized actuality map read\n");
@@ -444,6 +485,26 @@ inline void DynamicAnalyser::m_redundant_copy_to_gpu(addr_t addr) {
   if (status == dyna::ActualStatus::ACTUAL_REGION ||
       status == dyna::ActualStatus::ACTUAL_BOTH) {
     dprint("\ncase 1 addr detected\n\n");
+    fprintf(stdout, "%ld\n", addr);
+  }
+}
+
+inline void DynamicAnalyser::m_redundant_copy_from_gpu(addr_t addr) {
+  dprint("red_from_gpu?[%ld]", addr);
+  auto it = m_actualityStorage.find(addr);
+  if (it == m_actualityStorage.end()) {
+    dprint("uninitialized actuality map read\n");
+    return;
+  }
+
+  dyna::ActualStatus status = it->second.status;
+  printf("[%d]\n", (int)status);
+  // if (status == dyna::ActualStatus::ACTUAL_REGION ||
+  //     status == dyna::ActualStatus::INACTUAL) {
+  // } // must be unreached error
+  if (status == dyna::ActualStatus::ACTUAL_HOST ||
+      status == dyna::ActualStatus::ACTUAL_BOTH) {
+    dprint("\ncase 2 addr detected\n\n");
     fprintf(stdout, "%ld\n", addr);
   }
 }
