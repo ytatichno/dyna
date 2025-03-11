@@ -2,6 +2,9 @@
 #include "ContextStringParser.h"
 #include "debug.h"
 #include <cstdint>
+#include <iostream>
+#include <istream>
+#include <sstream>
 #include <string>
 
 std::string  g_emptyString = "";
@@ -132,15 +135,12 @@ VariableString::VariableString(StringType sType, SplitString*sItems)
   m_name = sItems->GetValue("name1");
   tmpStr = sItems->GetValue("vtype");
   m_type = Auxiliary::FromString<int>(tmpStr);
-  tmpStr = sItems->GetValue("rank");
-  m_rank = tmpStr == "" ? 0 : Auxiliary::FromString<long>(tmpStr);
   tmpStr = sItems->GetValue("local");
   m_local = tmpStr != "" && Auxiliary::FromString<int>(tmpStr) != 0;
 }
 
 const std::string&  VariableString::Name() const {return m_name;}
 int32_t  VariableString::Type() const {return m_type;}
-int        VariableString::Rank() const {return m_rank;}
 
 std::string  VariableString::ToString() const
 {
@@ -153,11 +153,55 @@ std::string  VariableString::ToString() const
   str += m_name;
   str += "; type number = ";
   str += Auxiliary::ToString(static_cast <int> (m_type));
-  str += "; rank = ";
-  str += Auxiliary::ToString(m_rank);
   str += ";";
 
   return str;
+}
+
+ArrayVariableString::ArrayVariableString(StringType sType, SplitString *sItems)
+  : VariableString(sType, sItems)
+{
+  std::string tmpStr;
+  m_dims = DimsFromString(sItems->GetValue("dims"));
+}
+
+std::string ArrayVariableString::DimsToString() const{
+  std::ostringstream oss;
+  oss << "dim=";
+  for(const auto &dim: m_dims){
+    oss << '[' << dim << ']';
+  }
+  return oss.str();
+}
+
+std::string ArrayVariableString::ToString() const
+{
+  std::string str;
+
+  str  = "array_";
+  str += VariableString::ToString();
+  str += DimsToString();
+  str += ';';
+
+  return str;
+}
+
+std::vector<uint64_t> ArrayVariableString::DimsFromString(const std::string& s)
+{
+  std::istringstream iss(s);
+  std::vector<uint64_t> v;
+  uint64_t dim;
+  char discard;
+
+  while (iss >> discard >> dim >> discard) { // Читаем по шаблону [число]
+      v.push_back(dim);
+  }
+  std::cout << "dims: ";
+  for(const auto &e: v)
+    std::cout << e << ' ';
+
+  std::cout << ';' << std::endl;
+  return v;
 }
 
 VariableAccessString::VariableAccessString(StringType sType, SplitString*sItems)
@@ -435,9 +479,12 @@ BasicString* ContextStringsStore::AddString(void*& keyAddress, const char* str)
   BasicString* cntxt;
 
   dprint_string_parser("context type = %s\n", cStr->ContextType().c_str());
-  if (cStr->ContextType() == "var_name" || cStr->ContextType() == "arr_name")
+  if (cStr->ContextType() == "var_name")
   {
     cntxt = new VariableString(ST_VAR, cStr);
+  }
+  else if (cStr->ContextType() == "arr_name"){
+    cntxt = new ArrayVariableString(ST_ARR_VAR, cStr);
   }
   else if (cStr->ContextType() == "file_name")
   {

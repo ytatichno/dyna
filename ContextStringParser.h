@@ -3,6 +3,7 @@
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 #include "type_aliases.hpp"
 #include "DBEntity_VariableType.h"
 
@@ -20,7 +21,8 @@ enum StringType{
   ST_FUNC_CALL,
   ST_FUNC_REG,
   ST_COMMON,
-  ST_ACTUAL
+  ST_ACTUAL,
+  ST_ARR_VAR
 };
 //****************************************************************************//
 
@@ -138,18 +140,16 @@ class VariableString: public SrcRefString
 
     int32_t  m_type;      // Тип переменной
 
-    int        m_rank;      // размерность массива(0 для скалярной переменной)
     bool m_local;
 
   public:
 
     // Конструктор
     VariableString(StringType sType, SplitString* sItems);
-    VariableString(const std::string& name, const std::string& file_name, long line, long col, int32_t type, int rank, bool local=false)
-      : SrcRefString(ST_VAR, file_name, line, col)
+    VariableString(const std::string& name, const std::string& file_name, long line, long col, int32_t type, bool local=false, StringType st=ST_VAR)
+      : SrcRefString(st, file_name, line, col)
       , m_name(name)
       , m_type(type)
-      , m_rank(rank)
       , m_local(local)
     {
     }
@@ -160,8 +160,6 @@ class VariableString: public SrcRefString
     const std::string& Name() const;
     // Возвращает тип переменной
     int32_t Type() const;
-    // Функция возвращает размерность массива
-    int Rank() const;
     inline bool is_local() const { return m_local; }
 
   public:
@@ -171,6 +169,40 @@ class VariableString: public SrcRefString
     {
       return m_name;
     }
+};
+/***************************************************************/
+/****************************************************************/
+/***** Класс, хранящий контекстную информацию о переменной *****/
+/**************************************************************/
+class ArrayVariableString: public VariableString
+{
+    std::vector<uint64_t> m_dims;  // размерности массива
+
+
+  public:
+
+    // Конструктор
+    ArrayVariableString(StringType sType, SplitString* sItems);
+    ArrayVariableString(const std::string& name, const std::string& file_name, long line, long col, int32_t type, std::vector<uint64_t> dims, bool local=false)
+      : VariableString(name, file_name, line, col, type, local, ST_ARR_VAR)
+      , m_dims(dims)
+    {
+    }
+
+  public:
+
+    // Функция возвращает размерность массива
+    inline int Rank() const { return m_dims.size(); };
+    inline const std::vector<uint64_t>& Dims() const { return m_dims; };
+
+  public:
+    // Возвращает описание переменной в строковом виде
+    std::string ToString() const;
+
+  private:
+    std::string DimsToString() const;
+    std::vector<uint64_t> DimsFromString(const std::string& s);
+
 };
 /***************************************************************/
 
@@ -411,6 +443,7 @@ public:
   // записывает значение m_currCntxtID по адресу keyAddress и увеличивает значение m_currCntxtID на
   // единицу
   BasicString* AddString(void*& keyAddress, const char* str);
+  // todo зачем я это комментировал?
   template<typename T>
   T* AddString(const T& cs)
   {
