@@ -213,64 +213,146 @@ void DynamicAnalyser::RegPragmaGetActual(addr_t baseAddr,
   if (inRegion) {
     dprint("get_actual can't be placed inside a region\n");
   }
-  
+  const VariableString *cs = m_contexts.get_current()->get_var_descr(baseAddr);
+  if (cs->Type() == ST_VAR) {
+    m_redundant_copy_to_gpu(baseAddr);
+    return;
+  }
+  const ArrayVariableString *arrDescr = (const ArrayVariableString *)(cs);
+  dprint("^^^%lld  %lu\n", (long long)arrDescr, arrDescr->Dims().size());
+  // fill unfilled slice's dimensions with bounds
+  if (args.size() != 0) {
+    for (int i = args.size() / 2; i < arrDescr->Dims().size(); i++) {
+      dprint("push\n");
+      args.push_back(0);
+      args.push_back(arrDescr->Dims()[i] - 1);
+    }
+  }
+
+  uint8_t elementSize = m_types_table[arrDescr->Type()] / 8;
+  addr_t x_beg, x_end;
+  switch (args.size()) { // candidates for parallelisation
+  case 0:                // whole array
+    x_end = elementSize;
+    for (const auto &dim : arrDescr->Dims()) {
+      x_end *= dim;
+    }
+
+    for (addr_t x_beg = baseAddr; x_beg < x_end; x_beg += elementSize) {
+      m_redundant_copy_to_gpu(x_beg);
+    }
+    break;
+  case 2:
+    x_beg = baseAddr + args[0] * elementSize;
+    x_end = baseAddr + args[1] * elementSize;
+    for (; x_beg <= x_end; x_beg += elementSize) {
+      m_redundant_copy_to_gpu(x_beg);
+    }
+    break;
+  case 4: {
+
+    /// size of continious adresses to be checked in bytes
+    uint step = (args[3] - args[2] + 1) * elementSize;
+    /// number of continious steps
+    uint stepsNum = args[1] - args[0] + 1;
+
+    const auto lastDim = arrDescr->Dims().at(1);
+    /// size of intervals between continious steps
+    uint skipStep = lastDim * elementSize - step;
+    /// ptr variable initialized with start address
+    addr_t ptr = (lastDim * args[0] + args[2]) * elementSize + baseAddr;
+    for (uint i = 0; i < stepsNum; i++, ptr += skipStep) {
+      auto ptr_end = ptr + step;
+      for (; ptr < ptr_end; ptr += elementSize) {
+        m_redundant_copy_to_gpu(ptr);
+      }
+    }
+
+  } break;
+  case 6: {
+    /// size of continious adresses to be checked in bytes
+    uint step = (args[5] - args[4] + 1) * elementSize;
+    /// number of continious steps in one big step
+    uint stepsNum = args[3] - args[2] + 1;
+    /// number of big steps of small step
+    uint bigStepsNum = args[1] - args[0] + 1;
+    const auto lastDim = arrDescr->Dims().at(2);
+    const auto preLastDim = arrDescr->Dims().at(1);
+    /// size of small skip as interval btw cont steps in one big step
+    uint skipStep = lastDim * elementSize - step;
+    /// size of big skip as interval
+    uint bigSkipStep = (preLastDim - (args[3] - args[2] + 1)) * lastDim *
+                       elementSize; // +?(skipStep)
+    addr_t ptr =
+        (lastDim * (preLastDim * args[0] + args[2]) + args[4]) * elementSize +
+        baseAddr;
+    for (uint i = 0; i < bigStepsNum; i++, ptr += bigSkipStep) {
+      for (uint j = 0; j < stepsNum; j++, ptr += skipStep) {
+        auto ptr_end = ptr + step;
+        for (; ptr < ptr_end; ptr += elementSize) {
+          m_redundant_copy_to_gpu(ptr);
+        }
+      }
+    }
+  } break;
+  }
 }
 
 void DynamicAnalyser::RegRegionEntrance() {
   // iterate through remembered "dvm actual" calls
   while (!m_actualPragmaCallsStore.empty()) {
     PragmaActualCall &call = m_actualPragmaCallsStore.front();
-    const VariableString *cs = m_contexts.get_current()->get_var_descr(call.baseAddr);
+    const VariableString *cs =
+        m_contexts.get_current()->get_var_descr(call.baseAddr);
     if (cs->Type() == ST_VAR) {
       m_redundant_copy_to_gpu(call.baseAddr);
       continue;
     }
+    addr_t baseAddr = call.baseAddr;
+    auto &args = call.args;
     const ArrayVariableString *arrDescr = (const ArrayVariableString *)(cs);
     dprint("^^^%lld  %lu\n", (long long)arrDescr, arrDescr->Dims().size());
     // fill unfilled slice's dimensions with bounds
-    if(call.args.size() != 0){
-      for(int i = call.args.size()/2; i < arrDescr->Dims().size(); i++){
-        call.args.push_back(0);
-        call.args.push_back(arrDescr->Dims()[i]);
+    if (args.size() != 0) {
+      for (int i = args.size() / 2; i < arrDescr->Dims().size(); i++) {
+        dprint("push\n");
+        args.push_back(0);
+        args.push_back(arrDescr->Dims()[i] - 1);
       }
     }
 
     uint8_t elementSize = m_types_table[arrDescr->Type()] / 8;
     addr_t x_beg, x_end;
-    switch (call.args.size()) { // candidates for parallelisation
-    case 0:                     // whole array
+    switch (args.size()) { // candidates for parallelisation
+    case 0:                // whole array
       x_end = elementSize;
       for (const auto &dim : arrDescr->Dims()) {
         x_end *= dim;
       }
 
-      for (addr_t x_beg = call.baseAddr; x_beg < x_end; x_beg += elementSize) {
+      for (addr_t x_beg = baseAddr; x_beg < x_end; x_beg += elementSize) {
         m_redundant_copy_to_gpu(x_beg);
       }
       break;
     case 2:
-      x_beg = call.baseAddr + call.args[0] * elementSize;
-      x_end = call.baseAddr + call.args[1] * elementSize;
-      for (; x_beg <= x_end; x_beg += call.elementSize) {
+      x_beg = baseAddr + args[0] * elementSize;
+      x_end = baseAddr + args[1] * elementSize;
+      for (; x_beg <= x_end; x_beg += elementSize) {
         m_redundant_copy_to_gpu(x_beg);
-        // todo update val by ref not rewrite with copy
-        // auto it = m_actualityStorage.find(x_beg);
-        // it->second.status = dyna::ActualStatus::ACTUAL_BOTH;
-        // m_actualityStorage[x_beg] = it->second;
       }
       break;
     case 4: {
 
       /// size of continious adresses to be checked in bytes
-      uint step = (call.args[3] - call.args[2] + 1) * elementSize;
+      uint step = (args[3] - args[2] + 1) * elementSize;
       /// number of continious steps
-      uint stepsNum = call.args[1] - call.args[0] + 1;
+      uint stepsNum = args[1] - args[0] + 1;
 
       const auto lastDim = arrDescr->Dims().at(1);
       /// size of intervals between continious steps
       uint skipStep = lastDim * elementSize - step;
       /// ptr variable initialized with start address
-      addr_t ptr = (lastDim * call.args[0] + call.args[2]) * elementSize + call.baseAddr;
+      addr_t ptr = (lastDim * args[0] + args[2]) * elementSize + baseAddr;
       for (uint i = 0; i < stepsNum; i++, ptr += skipStep) {
         auto ptr_end = ptr + step;
         for (; ptr < ptr_end; ptr += elementSize) {
@@ -280,21 +362,23 @@ void DynamicAnalyser::RegRegionEntrance() {
 
     } break;
     case 6: {
+      dprint("CASE6: %u : %u\n", args[4], args[5]);
       /// size of continious adresses to be checked in bytes
-      uint step = (call.args[5] - call.args[4] + 1) * elementSize;
+      uint step = (args[5] - args[4] + 1) * elementSize;
       /// number of continious steps in one big step
-      uint stepsNum = call.args[3] - call.args[2] + 1;
+      uint stepsNum = args[3] - args[2] + 1;
       /// number of big steps of small step
-      uint bigStepsNum = call.args[1] - call.args[0] + 1;
+      uint bigStepsNum = args[1] - args[0] + 1;
       const auto lastDim = arrDescr->Dims().at(2);
       const auto preLastDim = arrDescr->Dims().at(1);
       /// size of small skip as interval btw cont steps in one big step
       uint skipStep = lastDim * elementSize - step;
       /// size of big skip as interval
-      uint bigSkipStep = (preLastDim - (call.args[3] - call.args[2] + 1)) *
-                         lastDim * elementSize; // +?(skipStep)
-      addr_t ptr = (lastDim * (preLastDim * call.args[0] + call.args[2]) +
-                   call.args[4]) * elementSize + call.baseAddr;
+      uint bigSkipStep = (preLastDim - (args[3] - args[2] + 1)) * lastDim *
+                         elementSize; // +?(skipStep)
+      addr_t ptr =
+          (lastDim * (preLastDim * args[0] + args[2]) + args[4]) * elementSize +
+          baseAddr;
       for (uint i = 0; i < bigStepsNum; i++, ptr += bigSkipStep) {
         for (uint j = 0; j < stepsNum; j++, ptr += skipStep) {
           auto ptr_end = ptr + step;
