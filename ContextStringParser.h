@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <list>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 #include "type_aliases.hpp"
@@ -21,7 +22,8 @@ enum StringType{
   ST_FUNC_CALL,
   ST_FUNC_REG,
   ST_COMMON,
-  ST_ACTUAL,
+  ST_ACTUAL_CALL,
+  ST_GET_ACTUAL_CALL,
   ST_ARR_VAR
 };
 //****************************************************************************//
@@ -112,7 +114,7 @@ public:
   }
 
   // Возвращает номер строки в файле
-  inline long line() const { return m_line; }
+  inline long line() const { return m_line; }  // todo uppercase?
   // Возвращает номер столбца в строке
   inline long col() const { return m_col; }
 
@@ -176,29 +178,36 @@ class VariableString: public SrcRefString
 /**************************************************************/
 class ArrayVariableString: public VariableString
 {
-    std::vector<uint64_t> m_dims;  // размерности массива
+    std::shared_ptr<std::vector<uint64_t>> m_dims;  // размерности массива
 
 
   public:
+    // Конструктор из SplitString
+    ArrayVariableString(StringType sType,
+                                             SplitString *sItems)
+        : VariableString(sType, sItems),
+          m_dims(std::make_shared<std::vector<uint64_t>>(
+              DimsFromString(sItems->GetValue("dims")))) {}
 
-    // Конструктор
-    ArrayVariableString(StringType sType, SplitString* sItems);
-    ArrayVariableString(const std::string& name, const std::string& file_name, long line, long col, int32_t type, std::vector<uint64_t> dims, bool local=false)
-      : VariableString(name, file_name, line, col, type, local, ST_ARR_VAR)
-      , m_dims(dims)
-    {
-    }
+    // Конструктор с rvalue dims
+    ArrayVariableString(const std::string &name,
+                                             const std::string &file_name,
+                                             long line, long col, int32_t type,
+                                             std::vector<uint64_t> &&dims,
+                                             bool local)
+        : VariableString(name, file_name, line, col, type, local, ST_ARR_VAR),
+          m_dims(std::make_shared<std::vector<uint64_t>>(std::move(dims))) {}
 
   public:
 
     // Функция возвращает размерность массива
-    inline int Rank() const { return m_dims.size(); };
-    inline const std::vector<uint64_t>& Dims() const { return m_dims; };
+    inline int Rank() const { return m_dims->size(); };
+    inline const std::shared_ptr<std::vector<uint64_t>> Dims() const { return m_dims; };
 
   public:
     // Возвращает описание переменной в строковом виде
     std::string ToString() const;
-
+    // todo to_short_string
   private:
     std::string DimsToString() const;
     std::vector<uint64_t> DimsFromString(const std::string& s);
@@ -396,9 +405,9 @@ public:
 /*******************************************/
 /***** Stores "pragma dvm actual" info *****/
 /*******************************************/
-class ActualString: public BasicString{
+class ActualCallString : public SrcRefString {
 
-  long  m_line;
+  long m_line;
 
   // /// array start address
   // addr_t baseAddr;
@@ -406,15 +415,34 @@ class ActualString: public BasicString{
   // std::list<std::string>    m_variablesLst;
 
 public:
-
-  ActualString(StringType sType, SplitString* sItems);
-  ActualString(StringType sType, const std::string& fileName, long line);
+  ActualCallString(StringType sType, SplitString *sItems);
+  ActualCallString(StringType sType, const std::string &fileName, long line)
+      : SrcRefString(sType, fileName, line, 0){};
 
 public:
+  std::string ToString();
+};
+/*******************************************/
 
-  inline long Line() { return m_line; };
-  std::string  ToString();
+/*******************************************/
+/***** Stores "pragma dvm get actual" info *****/
+/*******************************************/
+class GetActualCallString : public SrcRefString {
 
+  long m_line;
+
+  // /// array start address
+  // addr_t baseAddr;
+
+  // std::list<std::string>    m_variablesLst;
+
+public:
+  GetActualCallString(StringType sType, SplitString *sItems);
+  GetActualCallString(StringType sType, const std::string &fileName, long line)
+      : SrcRefString(sType, fileName, line, 0){};
+
+public:
+  std::string ToString();
 };
 /*******************************************/
 

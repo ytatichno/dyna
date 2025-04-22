@@ -2,10 +2,10 @@
 #include "ContextStringParser.h"
 #include "debug.h"
 #include <cstdint>
+#include <cstdio>
 #include <iostream>
 #include <istream>
 #include <sstream>
-#include <string>
 
 std::string  g_emptyString = "";
 
@@ -158,17 +158,10 @@ std::string  VariableString::ToString() const
   return str;
 }
 
-ArrayVariableString::ArrayVariableString(StringType sType, SplitString *sItems)
-  : VariableString(sType, sItems)
-{
-  std::string tmpStr;
-  m_dims = DimsFromString(sItems->GetValue("dims"));
-}
-
 std::string ArrayVariableString::DimsToString() const{
   std::ostringstream oss;
   oss << "dim=";
-  for(const auto &dim: m_dims){
+  for(const auto &dim: *m_dims){
     oss << '[' << dim << ']';
   }
   return oss.str();
@@ -193,14 +186,9 @@ std::vector<uint64_t> ArrayVariableString::DimsFromString(const std::string& s)
   uint64_t dim;
   char discard;
 
-  while (iss >> discard >> dim >> discard) { // Читаем по шаблону [число]
+  while (iss >> discard >> dim >> discard) {
       v.push_back(dim);
   }
-  std::cout << "dims: ";
-  for(const auto &e: v)
-    std::cout << e << ' ';
-
-  std::cout << ';' << std::endl;
   return v;
 }
 
@@ -435,22 +423,13 @@ std::string  CommonBlockString::ToString(){
   return str;
 }
 
-ActualString::ActualString(StringType sType, SplitString* sItems)
- : ActualString(sType,
-                sItems->GetValue("file"),
-                std::stol(sItems->GetValue("line"))
-                ) { }
+ActualCallString::ActualCallString(StringType sType, SplitString *sItems)
+    : ActualCallString(sType, sItems->GetValue("file"),
+                       Auxiliary::FromString<long>(sItems->GetValue("line1"))) {}
 
-ActualString::ActualString(StringType sType, const std::string& fileName, long line)
- : BasicString(sType){
-
-  SetFileName(fileName);
-  m_line = line;
- }
-
-std::string ActualString::ToString(){
+std::string ActualCallString::ToString() {
   std::string str;
-  str  = "pragma_actual_info: ";
+  str = "pragma_actual_call_info: ";
   str += "file name = ";
   str += FileName();
   str += "; line = ";
@@ -459,10 +438,11 @@ std::string ActualString::ToString(){
   return str;
 }
 
-ContextStringsStore::ContextStringsStore()
-{
-  m_store.clear();
-}
+GetActualCallString::GetActualCallString(StringType sType, SplitString *sItems)
+    : GetActualCallString(sType, sItems->GetValue("file"),
+                          Auxiliary::FromString<long>(sItems->GetValue("line1"))) {}
+
+ContextStringsStore::ContextStringsStore() { m_store.clear(); }
 
 ContextStringsStore::~ContextStringsStore()
 {
@@ -493,6 +473,14 @@ BasicString* ContextStringsStore::AddString(void*& keyAddress, const char* str)
   else if (cStr->ContextType() == "func_call")
   {
     cntxt = new FunctionCallString(ST_FUNC_CALL, cStr);
+  }
+  else if (cStr->ContextType() == "actual_call")
+  {
+    cntxt = new ActualCallString(ST_ACTUAL_CALL, cStr);
+  }
+  else if (cStr->ContextType() == "get_actual_call")
+  {
+    cntxt = new GetActualCallString(ST_GET_ACTUAL_CALL, cStr);
   }
   else if (cStr->ContextType() == "function")
   {

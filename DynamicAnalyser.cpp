@@ -1,5 +1,6 @@
 #include <cassert>
 #include <csignal>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
@@ -7,6 +8,8 @@
 #include <memory>
 #include <sstream>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 #include "Context.h"
 #include "ContextStringParser.h"
@@ -97,8 +100,6 @@ void DynamicAnalyser::RegVariable(CSHandle cs, void *base_addr,
 
 void DynamicAnalyser::RegArray(CSHandle cs, void *addr, size_t arr_size) {
   VariableString *descr = dynamic_cast<VariableString *>((BasicString *)cs);
-  dprint(">>>> %s\n", descr->ToString().c_str());
-  dprint("register array %s %ld\n", descr->Name().c_str(), addr);
   assert(descr != 0);
   m_contexts.get_current()->register_array(
       dyna::AddrRange((long)addr, (long)addr + arr_size), descr);
@@ -117,23 +118,14 @@ void DynamicAnalyser::RegAccess(dyna::AccessType accType, CSHandle access_cs,
   assert(descr != 0);
   m_anstorage.on_reg_access((long)pAddr, accType);
   m_contexts.get_current()->register_access((long)pAddr, accType, descr);
-  // m_actual_state_trans((long)pAddr, nullptr);
+  VariableAccessString *vas = dynamic_cast<VariableAccessString *>((BasicString *)access_cs);
+  dprint("%s %ld \n", descr->Name().c_str(), vas->Line());
   if (accType == dyna::AccessType::AT_WRITE && !inRegion) {
-    dprint("outRegionWrite[%ld, %ld] %s\n", (long)pAddr, (long)pBase,
-           descr->ToString().c_str());
     m_actual_write_host((long)pAddr);
   }
   if (accType == dyna::AccessType::AT_WRITE && inRegion) {
-    dprint("inRegionWrite[%ld, %ld] %s\n", (long)pAddr, (long)pBase,
-           descr->ToString().c_str());
     m_actual_write_gpu((long)pAddr);
   }
-#ifdef mydbg
-  // BasicString *acc = (BasicString *)access_cs;
-  // if (descr->Rank() > 0)
-  //   std::cout << pAddr << " " << descr->ToString() << std::endl;
-// std::cout << pAddr << " " << acc-> << std::endl;
-#endif
 #if DEBUG_PRINT_REGACCESS
   const char *act = accType == dyna::AT_READ    ? "read"
                     : accType == dyna::AT_WRITE ? "write"
@@ -185,68 +177,72 @@ void DynamicAnalyser::UnregFunction(CSHandle staticContextHandle) {
   m_contexts.end_function();
 }
 
-void DynamicAnalyser::RegPragmaActual(addr_t baseAddr,
+void DynamicAnalyser::RegPragmaActual(CSHandle staticContextHandle, addr_t baseAddr,
                                       std::vector<uint32_t> args) {
 
   if (inRegion) {
-    dprint("actual can't be placed inside a region\n");
+    dprint("actual can't be placed inside region\n");
   }
 
   if (args.size() % 2 != 0)
     dprint("ERROR\n");
 
-  // let's extract element size from ContextStringStore
-  // BasicString *cs = m_contextStringsStore->GetString((void *)baseAddr);
-  const VariableString *descr = m_contexts.get_current()->get_var_descr(baseAddr);
-  dprint("&&&%lld\n", (long long)descr);
-  int32_t elementSize = m_types_table[descr->Type()] / 8; // >> 3
-  dprint("ELEMENT_SIZE: %d", elementSize);
+
+
   m_actualPragmaCallsStore.push(
-      PragmaActualCall(baseAddr, elementSize, std::move(args)));
-
-
+      PragmaActualCall(baseAddr, static_cast<ActualCallString*>(staticContextHandle), std::move(args)));
 }
 
-void DynamicAnalyser::RegPragmaGetActual(addr_t baseAddr,
+void DynamicAnalyser::RegPragmaGetActual(CSHandle staticContextHandle, addr_t baseAddr,
                                          std::vector<uint32_t> args) {
-  // dprint("%s\n", Identifiers);
   if (inRegion) {
-    dprint("get_actual can't be placed inside a region\n");
+    dprint("get_actual can't be placed inside region\n");
   }
+  GetActualCallString *callCS = static_cast<GetActualCallString*>(staticContextHandle);
   const VariableString *cs = m_contexts.get_current()->get_var_descr(baseAddr);
   if (cs->Type() == ST_VAR) {
-    m_redundant_copy_to_gpu(baseAddr);
+    auto csToReport = m_redundant_copy_from_gpu(baseAddr, callCS);
+    if(csToReport != nullptr){
+        m_anstorage.reg_extra_exchange(csToReport);
+      }
     return;
   }
   const ArrayVariableString *arrDescr = (const ArrayVariableString *)(cs);
-  dprint("^^^%lld  %lu\n", (long long)arrDescr, arrDescr->Dims().size());
   // fill unfilled slice's dimensions with bounds
   if (args.size() != 0) {
-    for (int i = args.size() / 2; i < arrDescr->Dims().size(); i++) {
-      dprint("push\n");
+    for (int i = args.size() / 2; i < arrDescr->Dims()->size(); i++) {
       args.push_back(0);
-      args.push_back(arrDescr->Dims()[i] - 1);
+      args.push_back(arrDescr->Dims()->at(i) - 1);
     }
   }
-
+  bool hasRedundantCopies = false;
+  std::map<const GetActualCallString*, std::vector<unsigned>> extraExchangesResults;
   uint8_t elementSize = m_types_table[arrDescr->Type()] / 8;
   addr_t x_beg, x_end;
   switch (args.size()) { // candidates for parallelisation
   case 0:                // whole array
     x_end = elementSize;
-    for (const auto &dim : arrDescr->Dims()) {
+    for (const auto &dim : *arrDescr->Dims()) {
       x_end *= dim;
     }
 
     for (addr_t x_beg = baseAddr; x_beg < x_end; x_beg += elementSize) {
-      m_redundant_copy_to_gpu(x_beg);
+      auto csToReport = m_redundant_copy_from_gpu(x_beg, callCS);
+      if(csToReport != nullptr){
+        hasRedundantCopies = true;
+        extraExchangesResults[callCS].push_back(m_addr_to_elem(x_beg, baseAddr, elementSize));
+      }
     }
     break;
   case 2:
     x_beg = baseAddr + args[0] * elementSize;
     x_end = baseAddr + args[1] * elementSize;
     for (; x_beg <= x_end; x_beg += elementSize) {
-      m_redundant_copy_to_gpu(x_beg);
+       auto csToReport = m_redundant_copy_from_gpu(x_beg, callCS);
+      if(csToReport != nullptr){
+        hasRedundantCopies = true;
+        extraExchangesResults[callCS].push_back(m_addr_to_elem(x_beg, baseAddr, elementSize));
+      }
     }
     break;
   case 4: {
@@ -256,7 +252,7 @@ void DynamicAnalyser::RegPragmaGetActual(addr_t baseAddr,
     /// number of continious steps
     uint stepsNum = args[1] - args[0] + 1;
 
-    const auto lastDim = arrDescr->Dims().at(1);
+    const auto lastDim = arrDescr->Dims()->at(1);
     /// size of intervals between continious steps
     uint skipStep = lastDim * elementSize - step;
     /// ptr variable initialized with start address
@@ -264,7 +260,11 @@ void DynamicAnalyser::RegPragmaGetActual(addr_t baseAddr,
     for (uint i = 0; i < stepsNum; i++, ptr += skipStep) {
       auto ptr_end = ptr + step;
       for (; ptr < ptr_end; ptr += elementSize) {
-        m_redundant_copy_to_gpu(ptr);
+        auto csToReport = m_redundant_copy_from_gpu(ptr, callCS);
+        if(csToReport != nullptr){
+          hasRedundantCopies = true;
+          extraExchangesResults[callCS].push_back(m_addr_to_elem(ptr, baseAddr, elementSize));
+        }
       }
     }
 
@@ -276,8 +276,8 @@ void DynamicAnalyser::RegPragmaGetActual(addr_t baseAddr,
     uint stepsNum = args[3] - args[2] + 1;
     /// number of big steps of small step
     uint bigStepsNum = args[1] - args[0] + 1;
-    const auto lastDim = arrDescr->Dims().at(2);
-    const auto preLastDim = arrDescr->Dims().at(1);
+    const auto lastDim = arrDescr->Dims()->at(2);
+    const auto preLastDim = arrDescr->Dims()->at(1);
     /// size of small skip as interval btw cont steps in one big step
     uint skipStep = lastDim * elementSize - step;
     /// size of big skip as interval
@@ -290,11 +290,20 @@ void DynamicAnalyser::RegPragmaGetActual(addr_t baseAddr,
       for (uint j = 0; j < stepsNum; j++, ptr += skipStep) {
         auto ptr_end = ptr + step;
         for (; ptr < ptr_end; ptr += elementSize) {
-          m_redundant_copy_to_gpu(ptr);
+          auto csToReport = m_redundant_copy_from_gpu(ptr, callCS);
+          if(csToReport != nullptr){
+            hasRedundantCopies = true;
+            extraExchangesResults[callCS].push_back(m_addr_to_elem(ptr, baseAddr, elementSize));
+          }
         }
       }
     }
   } break;
+  }
+  if(hasRedundantCopies){
+    for(auto &pair: extraExchangesResults){
+      m_anstorage.reg_extra_exchanges(pair.first, std::move(pair.second), arrDescr->Dims());
+    }
   }
 }
 
@@ -302,43 +311,54 @@ void DynamicAnalyser::RegRegionEntrance() {
   // iterate through remembered "dvm actual" calls
   while (!m_actualPragmaCallsStore.empty()) {
     PragmaActualCall &call = m_actualPragmaCallsStore.front();
+    ActualCallString *callCS = call.cs;
     const VariableString *cs =
         m_contexts.get_current()->get_var_descr(call.baseAddr);
     if (cs->Type() == ST_VAR) {
-      m_redundant_copy_to_gpu(call.baseAddr);
+      auto csToReport = m_redundant_copy_to_gpu(call.baseAddr, callCS);
+      if(csToReport != nullptr){
+        m_anstorage.reg_extra_exchange(csToReport);
+      }
       continue;
     }
     addr_t baseAddr = call.baseAddr;
     auto &args = call.args;
     const ArrayVariableString *arrDescr = (const ArrayVariableString *)(cs);
-    dprint("^^^%lld  %lu\n", (long long)arrDescr, arrDescr->Dims().size());
     // fill unfilled slice's dimensions with bounds
     if (args.size() != 0) {
-      for (int i = args.size() / 2; i < arrDescr->Dims().size(); i++) {
-        dprint("push\n");
+      for (int i = args.size() / 2; i < arrDescr->Dims()->size(); i++) {
         args.push_back(0);
-        args.push_back(arrDescr->Dims()[i] - 1);
+        args.push_back(arrDescr->Dims()->at(i) - 1);
       }
     }
-
+    bool hasRedundantCopies = false;
+    std::map<const ActualCallString*, std::vector<unsigned>> extraExchangesResults;
     uint8_t elementSize = m_types_table[arrDescr->Type()] / 8;
     addr_t x_beg, x_end;
     switch (args.size()) { // candidates for parallelisation
     case 0:                // whole array
       x_end = elementSize;
-      for (const auto &dim : arrDescr->Dims()) {
+      for (const auto &dim : *arrDescr->Dims()) {
         x_end *= dim;
       }
 
       for (addr_t x_beg = baseAddr; x_beg < x_end; x_beg += elementSize) {
-        m_redundant_copy_to_gpu(x_beg);
+        auto csToReport = m_redundant_copy_to_gpu(x_beg, callCS);
+        if(csToReport != nullptr){
+          hasRedundantCopies = true;
+          extraExchangesResults[callCS].push_back(m_addr_to_elem(x_beg, baseAddr, elementSize));
+        }
       }
       break;
     case 2:
       x_beg = baseAddr + args[0] * elementSize;
       x_end = baseAddr + args[1] * elementSize;
       for (; x_beg <= x_end; x_beg += elementSize) {
-        m_redundant_copy_to_gpu(x_beg);
+        auto csToReport = m_redundant_copy_to_gpu(x_beg, callCS);
+        if(csToReport != nullptr){
+          hasRedundantCopies = true;
+          extraExchangesResults[callCS].push_back(m_addr_to_elem(x_beg, baseAddr, elementSize));
+        }
       }
       break;
     case 4: {
@@ -348,7 +368,7 @@ void DynamicAnalyser::RegRegionEntrance() {
       /// number of continious steps
       uint stepsNum = args[1] - args[0] + 1;
 
-      const auto lastDim = arrDescr->Dims().at(1);
+      const auto lastDim = arrDescr->Dims()->at(1);
       /// size of intervals between continious steps
       uint skipStep = lastDim * elementSize - step;
       /// ptr variable initialized with start address
@@ -356,21 +376,24 @@ void DynamicAnalyser::RegRegionEntrance() {
       for (uint i = 0; i < stepsNum; i++, ptr += skipStep) {
         auto ptr_end = ptr + step;
         for (; ptr < ptr_end; ptr += elementSize) {
-          m_redundant_copy_to_gpu(ptr);
+          auto csToReport = m_redundant_copy_to_gpu(ptr, callCS);
+          if(csToReport != nullptr){
+            hasRedundantCopies = true;
+            extraExchangesResults[callCS].push_back(m_addr_to_elem(ptr, baseAddr, elementSize));
+          }
         }
       }
 
     } break;
     case 6: {
-      dprint("CASE6: %u : %u\n", args[4], args[5]);
       /// size of continious adresses to be checked in bytes
       uint step = (args[5] - args[4] + 1) * elementSize;
       /// number of continious steps in one big step
       uint stepsNum = args[3] - args[2] + 1;
       /// number of big steps of small step
       uint bigStepsNum = args[1] - args[0] + 1;
-      const auto lastDim = arrDescr->Dims().at(2);
-      const auto preLastDim = arrDescr->Dims().at(1);
+      const auto lastDim = arrDescr->Dims()->at(2);
+      const auto preLastDim = arrDescr->Dims()->at(1);
       /// size of small skip as interval btw cont steps in one big step
       uint skipStep = lastDim * elementSize - step;
       /// size of big skip as interval
@@ -383,11 +406,20 @@ void DynamicAnalyser::RegRegionEntrance() {
         for (uint j = 0; j < stepsNum; j++, ptr += skipStep) {
           auto ptr_end = ptr + step;
           for (; ptr < ptr_end; ptr += elementSize) {
-            m_redundant_copy_to_gpu(ptr);
+            auto csToReport = m_redundant_copy_to_gpu(ptr, callCS);
+            if(csToReport != nullptr){
+              hasRedundantCopies = true;
+              extraExchangesResults[callCS].push_back(m_addr_to_elem(ptr, baseAddr, elementSize));
+            }
           }
         }
       }
     } break;
+    }
+    if(hasRedundantCopies){
+      for(auto &pair: extraExchangesResults){
+        m_anstorage.reg_extra_exchanges(pair.first, std::move(pair.second), arrDescr->Dims());
+      }
     }
     m_actualPragmaCallsStore.pop();
   }
@@ -423,7 +455,6 @@ void DynamicAnalyser::m_process_environment() {
 
 #ifndef USE_JSON_BCL
   if (m_print_json) {
-    dprint("\n\nHERERERERE\n\n");
     throw runtime_error("dynamic analyser compiled without JSON support. "
                         "Please recompile it with flag USE_JSON_BCL or set "
                         "environment variable " DYNA_ENV_OUTPUT_JSON "=0.");
@@ -492,11 +523,10 @@ inline void DynamicAnalyser::m_actual_write_host(addr_t addr) {
 
   auto it = m_actualityStorage.find(addr);
   if (it == m_actualityStorage.end()) {
-    dprint("unreg[%ld]\n", addr);
     return;
   }
   dyna::ActualStatus status = it->second.status;
-  BasicString *contextString = it->second.contextString;
+  SrcRefString *contextString = it->second.contextString;
   dyna::ActualInfo info{dyna::ActualStatus::ACTUAL_HOST, contextString};
   // switch can be collapsed for performance
   switch (status) {
@@ -517,11 +547,10 @@ inline void DynamicAnalyser::m_actual_write_gpu(addr_t addr) {
 
   auto it = m_actualityStorage.find(addr);
   if (it == m_actualityStorage.end()) {
-    // dprint("unreg[%ld]\n", addr);
     return;
   }
   dyna::ActualStatus status = it->second.status;
-  BasicString *contextString = it->second.contextString;
+  SrcRefString *contextString = it->second.contextString;
   dyna::ActualInfo info{dyna::ActualStatus::ACTUAL_REGION, contextString};
   // switch can be collapsed for performance
   switch (status) {
@@ -549,46 +578,40 @@ inline void DynamicAnalyser::m_actual_init_host(addr_t addr,
   // // ActualString *contextString = it->second.contextString;
   dyna::ActualInfo info{dyna::ActualStatus::ACTUAL_BOTH, contextString};
   m_actualityStorage[addr] = info;
-  dprint("init[%ld] of %s with type = %d\n", addr,
-         contextString->Name().c_str(), contextString->Type());
   // VariableType vtype = ((VariableString *)contextString)->Type();
 }
 
-inline void DynamicAnalyser::m_redundant_copy_to_gpu(addr_t addr) {
-  dprint("red_to_gpu?[%ld]", addr);
+inline SrcRefString* DynamicAnalyser::m_redundant_copy_to_gpu(addr_t addr, ActualCallString *cs) {
   auto it = m_actualityStorage.find(addr);
   if (it == m_actualityStorage.end()) {
-    dprint("uninitialized actuality map read\n");
-    return;
+    return nullptr;
   }
+
   dyna::ActualStatus status = it->second.status;
-  printf("[%d]\n", (int)status);
-  // if (status == dyna::ActualStatus::ACTUAL_REGION ||
-  //     status == dyna::ActualStatus::INACTUAL) {
-  // } // must be unreached error
+
   if (status == dyna::ActualStatus::ACTUAL_REGION ||
       status == dyna::ActualStatus::ACTUAL_BOTH) {
-    dprint("\ncase 1 addr detected\n\n");
-    fprintf(stdout, "%ld\n", addr);
+    return it->second.contextString;
   }
+  it->second.contextString = cs;
+  return nullptr;
 }
 
-inline void DynamicAnalyser::m_redundant_copy_from_gpu(addr_t addr) {
-  dprint("red_from_gpu?[%ld]", addr);
+inline SrcRefString* DynamicAnalyser::m_redundant_copy_from_gpu(addr_t addr, GetActualCallString *cs) {
   auto it = m_actualityStorage.find(addr);
   if (it == m_actualityStorage.end()) {
-    dprint("uninitialized actuality map read\n");
-    return;
+    return nullptr;
   }
 
   dyna::ActualStatus status = it->second.status;
-  printf("[%d]\n", (int)status);
-  // if (status == dyna::ActualStatus::ACTUAL_REGION ||
-  //     status == dyna::ActualStatus::INACTUAL) {
-  // } // must be unreached error
+
   if (status == dyna::ActualStatus::ACTUAL_HOST ||
       status == dyna::ActualStatus::ACTUAL_BOTH) {
-    dprint("\ncase 2 addr detected\n\n");
-    fprintf(stdout, "%ld\n", addr);
+    return it->second.contextString;
   }
+  it->second.contextString = cs;
+  return nullptr;
+}
+inline unsigned DynamicAnalyser::m_addr_to_elem(addr_t addr, addr_t base, unsigned size){
+  return (addr - base) / size;  // probably can be replaced with <<
 }

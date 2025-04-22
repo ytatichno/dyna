@@ -1,9 +1,12 @@
 #ifndef _ANALYSIS_STORAGE_HPP_
 #define _ANALYSIS_STORAGE_HPP_
+#include <cstdint>
+#include <iostream>
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
 #include "DependencyAnalysisResult.hpp"
+#include "ExtraExchangesAnalysisResult.hpp"
 #include "./../ContextStringParser.h"
 #include "./../Context.h"
 
@@ -14,6 +17,8 @@ class AnalysisStorage
 {
   std::unordered_map<const BasicString*, std::unordered_map<const VariableString*, DependencyAnalysisResult> > m_context_map;
   std::unordered_map<long, std::vector<DependencyAnalysisResult*>> m_use_after_loops;
+  std::map<const SrcRefString*, ExtraExchangesAnalysisResult> m_exchanges_analysis;
+  std::vector<const SrcRefString *> m_exchange_analysis;
 
 public:
 
@@ -21,12 +26,13 @@ public:
   void on_end_func(const Context& context);
   void on_reg_access(long addr, AccessType atype);
   void add_analysis_results(const Context& context);
+  void reg_extra_exchanges(const SrcRefString* cs, std::vector<unsigned> &&elements, std::shared_ptr<std::vector<uint64_t>> dims);
+  void reg_extra_exchange(const SrcRefString* cs);
   std::string toJSON() const;
   void add_from_json(const std::string& json_str, ContextStringsStore& cs_store);
   template <class OStream>
   void debug_print(OStream& out) const
   {
-
     //## declare comparators ##
     struct LoopContextLess {
       bool operator ()(const LoopString* a, const LoopString* b) const {
@@ -171,10 +177,30 @@ public:
         out << ")";
         comma = true;
       }
-  #undef local_format_print_prefix
-  #undef local_format_print_delimiter
       out << "\n";
     }
+    out << "Extra Region Exchanges Results: ";
+    for(const auto &e: m_exchange_analysis){
+      local_format_print_prefix;
+      if(e->Type() == StringType::ST_ACTUAL_CALL){
+        out << "actual(" << e->FileName() << ':' << e->line() << ");";
+      } else {
+        out << "get_actual(" << e->FileName() << ':' << e->line() << ");";
+      }
+    }
+    for(const auto &pair: m_exchanges_analysis){
+      local_format_print_prefix;
+      auto cs = pair.first;
+      if(cs->Type() == StringType::ST_ACTUAL_CALL){
+        out << "actual(" << cs->FileName() << ':' << cs->line() << "): ";
+      } else {
+        out << "get_actual(" << cs->FileName() << ':' << cs->line() << "): ";
+      }
+      out << pair.second.ToString();
+    }
+    out << "\n";
+  #undef local_format_print_prefix
+  #undef local_format_print_delimiter
   }
 
 };

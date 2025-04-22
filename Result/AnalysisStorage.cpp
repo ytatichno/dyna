@@ -1,4 +1,5 @@
 #include "AnalysisStorage.hpp"
+#include <utility>
 
 namespace dyna {
 
@@ -49,6 +50,12 @@ void AnalysisStorage::add_analysis_results(const Context& context)
   }
 }
 
+void AnalysisStorage::reg_extra_exchanges(const SrcRefString* cs, std::vector<unsigned> &&elements, std::shared_ptr<std::vector<uint64_t>> dims){
+  m_exchanges_analysis.insert(std::make_pair(cs, ExtraExchangesAnalysisResult(std::move(elements), dims)));
+}
+void AnalysisStorage::reg_extra_exchange(const SrcRefString *cs){
+  m_exchange_analysis.push_back(cs);
+}
 
 
 

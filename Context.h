@@ -127,9 +127,6 @@ namespace dyna {
         it->second->add_access(atype, m_current_iteration);
       else {
         if (m_description_map->find(addr) == m_description_map->end()){
-          // // todo remove
-          // if(descr->Rank() > 0)
-          //   printf("register part of %s with %ld addr\n", descr->Name().c_str(), addr);
           register_variable(addr, descr);
         }
         m_access_map.insert(std::make_pair(addr, new AddrInfo(atype, m_current_iteration, !descr || descr->is_local())));

@@ -17,7 +17,7 @@ enum class ActualStatus : uint8_t {
 
 struct ActualInfo {
   ActualStatus status;
-  BasicString* contextString;
+  SrcRefString* contextString;
 };
 
 /// TODO hide it behind conditional compilation

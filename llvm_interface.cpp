@@ -172,14 +172,12 @@ void sapforDeclTypes(size_t Num, size_t *Ids, size_t *Sizes) {
 }
 
 void sapforRegionIn() {
-  printf("region entrance\n");
   inRegion = true; // should we check if it called twice
   da.RegRegionEntrance();
   // da.R
 }
 
 void sapforRegionOut() {
-  printf("region exit\n");
   inRegion = false; // should we check if it called twice
 }
 
@@ -195,10 +193,8 @@ void sapforRegionOut() {
  * @example #pragma dvm actual(arr[1:x][3][0:2]) -> sapforRegActual(&arr, sizeof
  * *arr, 6, 1, x, 3, 3, 0, 2);
  */
-void sapforRegActual(void *baseAddr, uint32_t arg_c, ...) {
+void sapforRegActual(void *DILoc, void *baseAddr, uint32_t arg_c, ...) {
   dprint_ifunc_begin(RegActual);
-  dprint("regactual baseaddr: %lld\n", baseAddr);
-  dprint("regactual arg_c %u\n", arg_c);
 
   va_list args;
   va_start(args, arg_c);
@@ -211,14 +207,12 @@ void sapforRegActual(void *baseAddr, uint32_t arg_c, ...) {
   }
   va_end(args);
 
-  da.RegPragmaActual((addr_t)baseAddr, arguments);
+  da.RegPragmaActual(DILoc, (addr_t)baseAddr, arguments);
 
   dprint_ifunc_end(RegActual);
 }
-void sapforRegGetActual(void *baseAddr, uint32_t arg_c, ...) {
+void sapforRegGetActual(void *DILoc, void *baseAddr, uint32_t arg_c, ...) {
   dprint_ifunc_begin(RegGetActual);
-  dprint("reggetactual baseaddr: %lld\n", baseAddr);
-  dprint("reggetactual arg_c %u\n", arg_c);
 
   va_list args;
   va_start(args, arg_c);
@@ -230,7 +224,7 @@ void sapforRegGetActual(void *baseAddr, uint32_t arg_c, ...) {
   }
   va_end(args);
 
-  da.RegPragmaGetActual((addr_t)baseAddr, arguments);
+  da.RegPragmaGetActual(DILoc, (addr_t)baseAddr, arguments);
 
   dprint_ifunc_end(RegGetActual);
 }
